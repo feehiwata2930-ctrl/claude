@@ -108,11 +108,11 @@ export async function exportProject(
 
   await ffmpeg.writeFile(
     'InstrumentSans-Regular.ttf',
-    await fetchFile(`${window.location.origin}/fonts/InstrumentSans-Regular.ttf`),
+    await fetchFile(`${import.meta.env.BASE_URL}fonts/InstrumentSans-Regular.ttf`),
   )
   await ffmpeg.writeFile(
     'InstrumentSans-Bold.ttf',
-    await fetchFile(`${window.location.origin}/fonts/InstrumentSans-Bold.ttf`),
+    await fetchFile(`${import.meta.env.BASE_URL}fonts/InstrumentSans-Bold.ttf`),
   )
 
   let musicName: string | null = null
