@@ -1,13 +1,11 @@
 import { create } from 'zustand'
 import type { AspectRatio, Clip, MusicTrack, TextOverlay } from './types'
 import { getTotalDuration } from './lib/timeline'
-
-function uid() {
-  return Math.random().toString(36).slice(2, 10)
-}
+import { uid } from './lib/id'
 
 interface ProjectState {
   clips: Clip[]
+  originalClips: Clip[] | null
   textOverlays: TextOverlay[]
   aspectRatio: AspectRatio
   music: MusicTrack | null
@@ -25,6 +23,8 @@ interface ProjectState {
   setTrim: (id: string, trimStart: number, trimEnd: number) => void
   setClipVolume: (id: string, volume: number) => void
   selectClip: (id: string | null) => void
+  applyAutoCut: (newClips: Clip[]) => void
+  restoreOriginalClips: () => void
 
   addTextOverlay: (atTime: number) => void
   updateTextOverlay: (id: string, patch: Partial<TextOverlay>) => void
@@ -48,6 +48,7 @@ interface ProjectState {
 
 export const useProjectStore = create<ProjectState>((set) => ({
   clips: [],
+  originalClips: null,
   textOverlays: [],
   aspectRatio: '9:16',
   music: null,
@@ -81,8 +82,12 @@ export const useProjectStore = create<ProjectState>((set) => ({
   removeClip: (id) =>
     set((state) => {
       const clip = state.clips.find((c) => c.id === id)
-      if (clip) URL.revokeObjectURL(clip.url)
       const clips = state.clips.filter((c) => c.id !== id)
+      // Multiple clips (e.g. auto-cut highlights from the same source) can
+      // share one object URL — only revoke once nothing else references it.
+      if (clip && !clips.some((c) => c.url === clip.url)) {
+        URL.revokeObjectURL(clip.url)
+      }
       return {
         clips,
         selectedClipId: state.selectedClipId === id ? (clips[0]?.id ?? null) : state.selectedClipId,
@@ -111,6 +116,23 @@ export const useProjectStore = create<ProjectState>((set) => ({
     })),
 
   selectClip: (id) => set({ selectedClipId: id }),
+
+  applyAutoCut: (newClips) =>
+    set((state) => ({
+      originalClips: state.originalClips ?? state.clips,
+      clips: newClips,
+      selectedClipId: newClips[0]?.id ?? null,
+    })),
+
+  restoreOriginalClips: () =>
+    set((state) => {
+      if (!state.originalClips) return {}
+      return {
+        clips: state.originalClips,
+        originalClips: null,
+        selectedClipId: state.originalClips[0]?.id ?? null,
+      }
+    }),
 
   addTextOverlay: (atTime) =>
     set((state) => {
@@ -176,11 +198,19 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   reset: () =>
     set((state) => {
-      state.clips.forEach((c) => URL.revokeObjectURL(c.url))
+      const seenUrls = new Set<string>()
+      const revokeOnce = (url: string) => {
+        if (seenUrls.has(url)) return
+        seenUrls.add(url)
+        URL.revokeObjectURL(url)
+      }
+      state.clips.forEach((c) => revokeOnce(c.url))
+      state.originalClips?.forEach((c) => revokeOnce(c.url))
       if (state.music) URL.revokeObjectURL(state.music.url)
       if (state.resultUrl) URL.revokeObjectURL(state.resultUrl)
       return {
         clips: [],
+        originalClips: null,
         textOverlays: [],
         music: null,
         selectedClipId: null,

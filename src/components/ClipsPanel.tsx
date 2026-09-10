@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useProjectStore } from '../store'
 import { getVideoDuration, probeHasAudio } from '../lib/media'
 import ClipCard from './ClipCard'
+import AutoCutPanel from './AutoCutPanel'
 
 export default function ClipsPanel() {
   const clips = useProjectStore((s) => s.clips)
@@ -22,6 +23,7 @@ export default function ClipsPanel() {
 
   return (
     <div className="flex flex-col gap-2">
+      <AutoCutPanel />
       {clips.map((clip, i) => (
         <ClipCard key={clip.id} clip={clip} index={i} total={clips.length} />
       ))}
