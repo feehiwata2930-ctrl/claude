@@ -17,6 +17,7 @@ export interface Clip {
   trimEnd: number
   volume: number
   hasAudio: boolean
+  aiReason?: string
 }
 
 export type TextAlign = 'left' | 'center' | 'right'

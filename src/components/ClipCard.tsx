@@ -71,6 +71,9 @@ export default function ClipCard({ clip, index, total }: Props) {
           <p className="text-xs text-zinc-500">
             {formatTime(length)} selecionado de {formatTime(clip.duration)}
           </p>
+          {clip.aiReason && (
+            <p className="mt-1 line-clamp-2 text-xs text-violet-300/80 italic">"{clip.aiReason}"</p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
