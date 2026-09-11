@@ -5,9 +5,8 @@ import { PAPER_SIZES, paperDims } from '../lib/paper'
 import type { PaperSizeId } from '../types'
 import { buildTilingPdf } from '../lib/pdf'
 import { loadImage } from '../lib/stencil'
-import { getBinaryBlob } from '../lib/drive'
-import { ensureAccessToken } from '../lib/googleAuth'
-import DriveImage from './DriveImage'
+import { getImage } from '../lib/localdb'
+import LocalImage from './LocalImage'
 
 export default function TilingStudio() {
   const decalques = useApp((s) => s.db.decalques)
@@ -51,8 +50,8 @@ export default function TilingStudio() {
     setBusy(true)
     setError(null)
     try {
-      const token = await ensureAccessToken(false)
-      const blob = await getBinaryBlob(token, decalque.image_file_id)
+      const blob = await getImage(decalque.image_id)
+      if (!blob) throw new Error('Imagem do decalque não encontrada.')
       const img = await loadImage(blob)
       const canvas = document.createElement('canvas')
       canvas.width = img.naturalWidth
@@ -141,7 +140,7 @@ export default function TilingStudio() {
 
       {decalque && (
         <div className="mt-4 flex flex-col items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:flex-row">
-          <DriveImage fileId={decalque.image_file_id} alt={decalque.name} className="h-40 w-40 rounded-lg bg-white object-contain p-2" />
+          <LocalImage imageId={decalque.image_id} alt={decalque.name} className="h-40 w-40 rounded-lg bg-white object-contain p-2" />
           <div className="text-sm text-zinc-300">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-zinc-100">
               <Scissors size={14} /> {grid.cols} × {grid.rows} = {grid.cols * grid.rows} folha(s) necessárias

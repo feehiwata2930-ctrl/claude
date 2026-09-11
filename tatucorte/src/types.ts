@@ -26,7 +26,7 @@ export interface Decalque {
   id: string
   client_id: string | null
   name: string
-  image_file_id: string
+  image_id: string // chave da imagem (blob) no IndexedDB local
   width_mm: number
   height_mm: number
   settings: StencilSettings
@@ -62,7 +62,7 @@ export interface Tiling {
   created_at: string
 }
 
-export interface DriveDb {
+export interface LocalDb {
   clients: Client[]
   decalques: Decalque[]
   sheets: Sheet[]
@@ -70,4 +70,4 @@ export interface DriveDb {
   tilings: Tiling[]
 }
 
-export const EMPTY_DB: DriveDb = { clients: [], decalques: [], sheets: [], sheet_items: [], tilings: [] }
+export const EMPTY_DB: LocalDb = { clients: [], decalques: [], sheets: [], sheet_items: [], tilings: [] }

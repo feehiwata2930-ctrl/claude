@@ -1,22 +1,14 @@
 import { create } from 'zustand'
-import type { Client, Decalque, DriveDb, PaperSizeId, Sheet, SheetItem, StencilSettings, Tiling } from './types'
+import type { Client, Decalque, LocalDb, PaperSizeId, Sheet, SheetItem, StencilSettings, Tiling } from './types'
 import { EMPTY_DB } from './types'
 import { newId } from './lib/id'
-import { ensureAccessToken, fetchUserInfo, signOut as googleSignOut, type GoogleUserInfo } from './lib/googleAuth'
-import { createBinaryFile, deleteFile, ensureFolder, ensureJsonFile, forgetImageObjectUrl, readJsonFile, writeJsonFile } from './lib/drive'
+import { deleteImage, forgetImageObjectUrl, loadDb, saveDb, saveImage } from './lib/localdb'
 
-export type View = 'estudio' | 'biblioteca' | 'folha' | 'ampliar' | 'clientes' | 'config'
+export type View = 'estudio' | 'biblioteca' | 'folha' | 'ampliar' | 'clientes'
 
 interface AppState {
-  account: GoogleUserInfo | null
-  connecting: boolean
   loaded: boolean
-  connectError: string | null
-
-  rootFolderId: string | null
-  imagesFolderId: string | null
-  dbFileId: string | null
-  db: DriveDb
+  db: LocalDb
 
   view: View
   setView: (v: View) => void
@@ -26,8 +18,7 @@ interface AppState {
   activeDecalqueForTiling: string | null
   setActiveDecalqueForTiling: (id: string | null) => void
 
-  connect: (interactive: boolean) => Promise<void>
-  disconnect: () => Promise<void>
+  init: () => Promise<void>
 
   addClient: (name: string, notes: string) => Promise<void>
   removeClient: (id: string) => Promise<void>
@@ -51,19 +42,8 @@ interface AppState {
   removeTiling: (id: string) => Promise<void>
 }
 
-async function getToken(): Promise<string> {
-  return ensureAccessToken(false)
-}
-
 export const useApp = create<AppState>((set, get) => ({
-  account: null,
-  connecting: false,
   loaded: false,
-  connectError: null,
-
-  rootFolderId: null,
-  imagesFolderId: null,
-  dbFileId: null,
   db: EMPTY_DB,
 
   view: 'estudio',
@@ -74,33 +54,9 @@ export const useApp = create<AppState>((set, get) => ({
   activeDecalqueForTiling: null,
   setActiveDecalqueForTiling: (id) => set({ activeDecalqueForTiling: id }),
 
-  connect: async (interactive) => {
-    set({ connecting: true, connectError: null })
-    try {
-      const token = await ensureAccessToken(interactive)
-      const account = await fetchUserInfo(token)
-      const rootFolderId = await ensureFolder(token, 'TatuCorte')
-      const imagesFolderId = await ensureFolder(token, 'imagens', rootFolderId)
-      const dbFileId = await ensureJsonFile(token, 'db.json', rootFolderId, EMPTY_DB)
-      const db = await readJsonFile<DriveDb>(token, dbFileId)
-      set({
-        account,
-        rootFolderId,
-        imagesFolderId,
-        dbFileId,
-        db: { ...EMPTY_DB, ...db },
-        loaded: true,
-        connecting: false,
-      })
-    } catch (err) {
-      set({ connecting: false, connectError: err instanceof Error ? err.message : 'Não foi possível conectar ao Google Drive.' })
-      throw err
-    }
-  },
-
-  disconnect: async () => {
-    await googleSignOut()
-    set({ account: null, loaded: false, db: EMPTY_DB, rootFolderId: null, imagesFolderId: null, dbFileId: null })
+  init: async () => {
+    const db = await loadDb()
+    set({ db: { ...EMPTY_DB, ...db }, loaded: true })
   },
 
   addClient: async (name, notes) => {
@@ -116,15 +72,13 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   addDecalque: async ({ name, clientId, blob, widthMm, heightMm, settings }) => {
-    const state = get()
-    if (!state.imagesFolderId) throw new Error('Drive ainda não está pronto.')
-    const token = await getToken()
-    const imageFileId = await createBinaryFile(token, `${newId()}.png`, state.imagesFolderId, blob)
+    const imageId = newId()
+    await saveImage(imageId, blob)
     const record: Decalque = {
       id: newId(),
       client_id: clientId,
       name,
-      image_file_id: imageFileId,
+      image_id: imageId,
       width_mm: widthMm,
       height_mm: heightMm,
       settings,
@@ -135,9 +89,8 @@ export const useApp = create<AppState>((set, get) => ({
   removeDecalque: async (id) => {
     const record = get().db.decalques.find((d) => d.id === id)
     if (!record) return
-    const token = await getToken()
-    await deleteFile(token, record.image_file_id)
-    forgetImageObjectUrl(record.image_file_id)
+    await deleteImage(record.image_id)
+    forgetImageObjectUrl(record.image_id)
     await mutate(get, set, (db) => ({
       ...db,
       decalques: db.decalques.filter((d) => d.id !== id),
@@ -190,11 +143,8 @@ export const useApp = create<AppState>((set, get) => ({
   },
 }))
 
-async function mutate(get: () => AppState, set: (partial: Partial<AppState>) => void, updater: (db: DriveDb) => DriveDb) {
-  const state = get()
-  if (!state.dbFileId) throw new Error('Drive ainda não está pronto.')
-  const nextDb = updater(state.db)
+async function mutate(get: () => AppState, set: (partial: Partial<AppState>) => void, updater: (db: LocalDb) => LocalDb) {
+  const nextDb = updater(get().db)
   set({ db: nextDb })
-  const token = await getToken()
-  await writeJsonFile(token, state.dbFileId, nextDb)
+  await saveDb(nextDb)
 }

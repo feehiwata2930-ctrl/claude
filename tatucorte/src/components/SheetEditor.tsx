@@ -6,9 +6,8 @@ import type { Decalque, PaperSizeId, SheetItem } from '../types'
 import { shelfPack } from '../lib/pack'
 import { buildSheetPdf, rotateCanvas } from '../lib/pdf'
 import { loadImage } from '../lib/stencil'
-import { getBinaryBlob } from '../lib/drive'
-import { ensureAccessToken } from '../lib/googleAuth'
-import DriveImage from './DriveImage'
+import { getImage } from '../lib/localdb'
+import LocalImage from './LocalImage'
 
 const STAGE_WIDTH_PX = 640
 
@@ -174,11 +173,11 @@ export default function SheetEditor() {
     setExporting(true)
     setError(null)
     try {
-      const token = await ensureAccessToken(false)
       const pdfItems = await Promise.all(
         items.map(async (it) => {
           if (!it.decalque) throw new Error('Decalque sem imagem.')
-          const blob = await getBinaryBlob(token, it.decalque.image_file_id)
+          const blob = await getImage(it.decalque.image_id)
+          if (!blob) throw new Error('Imagem do decalque não encontrada.')
           const img = await loadImage(blob)
           let canvas = document.createElement('canvas')
           canvas.width = img.naturalWidth
@@ -302,7 +301,7 @@ export default function SheetEditor() {
                     : {}),
                 }}
               >
-                {it.decalque && <DriveImage fileId={it.decalque.image_file_id} alt={it.decalque.name} className="h-full w-full object-contain" />}
+                {it.decalque && <LocalImage imageId={it.decalque.image_id} alt={it.decalque.name} className="h-full w-full object-contain" />}
               </div>
 
               {selectedId === it.id && (
@@ -341,7 +340,7 @@ export default function SheetEditor() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
               {availableDecalques.map((d) => (
                 <button key={d.id} onClick={() => addDecalque(d)} className="rounded-lg border border-zinc-800 bg-white p-2 hover:border-pink-500">
-                  <DriveImage fileId={d.image_file_id} alt={d.name} className="aspect-square w-full object-contain" />
+                  <LocalImage imageId={d.image_id} alt={d.name} className="aspect-square w-full object-contain" />
                   <p className="mt-1 truncate text-xs text-zinc-700">{d.name}</p>
                 </button>
               ))}
