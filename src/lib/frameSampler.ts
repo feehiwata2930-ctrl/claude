@@ -6,10 +6,19 @@ export interface SampledFrame {
 
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve) => {
-    const onSeeked = () => {
+    let settled = false
+    const settle = () => {
+      if (settled) return
+      settled = true
       video.removeEventListener('seeked', onSeeked)
+      clearTimeout(timer)
       resolve()
     }
+    const onSeeked = () => settle()
+    // Some browsers never fire 'seeked' (e.g. seeking to a time that rounds
+    // to the current position, or certain variable-frame-rate files) — a
+    // timeout keeps this from hanging the whole analysis forever.
+    const timer = setTimeout(settle, 2000)
     video.addEventListener('seeked', onSeeked)
     video.currentTime = time
   })
