@@ -52,7 +52,8 @@ export default function SheetEditor() {
 
   function addDecalque(d: Decalque) {
     const maxW = dims.widthMm - 10
-    const scaleDown = d.width_mm > maxW ? maxW / d.width_mm : 1
+    const maxH = dims.heightMm - 10
+    const scaleDown = Math.min(1, maxW / d.width_mm, maxH / d.height_mm)
     const newItem: EditableItem = {
       id: crypto.randomUUID(),
       decalque_id: d.id,
@@ -108,7 +109,10 @@ export default function SheetEditor() {
           const y = Math.min(Math.max(0, drag.item.y_mm + dyMm), dims.heightMm - it.height_mm)
           return { ...it, x_mm: x, y_mm: y }
         }
-        const newWidth = Math.max(10, Math.min(dims.widthMm - it.x_mm, drag.item.width_mm + dxMm))
+        const maxWidthByX = dims.widthMm - drag.item.x_mm
+        const maxWidthByY = (dims.heightMm - drag.item.y_mm) * drag.ratio
+        const maxWidth = Math.max(10, Math.min(maxWidthByX, maxWidthByY))
+        const newWidth = Math.max(10, Math.min(maxWidth, drag.item.width_mm + dxMm))
         const newHeight = newWidth / drag.ratio
         return { ...it, width_mm: newWidth, height_mm: newHeight }
       }),

@@ -24,14 +24,18 @@ export default function StencilStudio() {
 
   useEffect(() => {
     if (!sourceImg || !canvasRef.current) return
-    const stencilCanvas = generateStencil(sourceImg, settings)
-    resultCanvasRef.current = stencilCanvas
-    const display = canvasRef.current
-    display.width = stencilCanvas.width
-    display.height = stencilCanvas.height
-    const ctx = display.getContext('2d')!
-    ctx.clearRect(0, 0, display.width, display.height)
-    ctx.drawImage(stencilCanvas, 0, 0)
+    const timeout = setTimeout(() => {
+      const stencilCanvas = generateStencil(sourceImg, settings)
+      resultCanvasRef.current = stencilCanvas
+      const display = canvasRef.current
+      if (!display) return
+      display.width = stencilCanvas.width
+      display.height = stencilCanvas.height
+      const ctx = display.getContext('2d')!
+      ctx.clearRect(0, 0, display.width, display.height)
+      ctx.drawImage(stencilCanvas, 0, 0)
+    }, 80)
+    return () => clearTimeout(timeout)
   }, [sourceImg, settings])
 
   async function handleFile(file: File) {
