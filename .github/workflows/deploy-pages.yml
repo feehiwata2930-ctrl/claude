@@ -26,6 +26,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             tatucorte/package-lock.json
+            tatuprompt/package-lock.json
       - run: npm ci
       - run: npm run build
         env:
@@ -34,11 +35,18 @@ jobs:
         working-directory: tatucorte
       - run: npm run build
         working-directory: tatucorte
+        env:
+          GITHUB_PAGES: "true"
+      - run: npm ci
+        working-directory: tatuprompt
+      - run: npm run build
+        working-directory: tatuprompt
         env:
           GITHUB_PAGES: "true"
       - run: |
-          mkdir -p dist/tatucorte
+          mkdir -p dist/tatucorte dist/tatuprompt
           cp -r tatucorte/dist/. dist/tatucorte/
+          cp -r tatuprompt/dist/. dist/tatuprompt/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
