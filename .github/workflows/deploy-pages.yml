@@ -23,10 +23,22 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tatucorte/package-lock.json
       - run: npm ci
       - run: npm run build
         env:
           GITHUB_PAGES: "true"
+      - run: npm ci
+        working-directory: tatucorte
+      - run: npm run build
+        working-directory: tatucorte
+        env:
+          GITHUB_PAGES: "true"
+      - run: |
+          mkdir -p dist/tatucorte
+          cp -r tatucorte/dist/. dist/tatucorte/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

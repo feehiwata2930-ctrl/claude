@@ -2,6 +2,8 @@
 
 App para tatuadores gerarem **decalques (stencils)** a partir de fotos e organizarem o **corte de folha** para impressão — tudo salvo no seu próprio **Google Drive**, para acessar depois de qualquer aparelho.
 
+**Link do app (GitHub Pages):** https://feehiwata2930-ctrl.github.io/claude/tatucorte/ — fica no ar depois que este branch é mesclado (merge) na `main`, que é quando o deploy roda.
+
 Feito com base no funcionamento de apps de referência do mercado (como o *Tattoo Stencil Pro*, de Darwin Enriquez): converter uma foto em contorno pronto para decalque e preparar a impressão em papel.
 
 ## Funcionalidades
@@ -20,7 +22,7 @@ Os dados são salvos como arquivos numa pasta **"TatuCorte"** criada no seu pró
 1. Abra o [Google Cloud Console](https://console.cloud.google.com/projectcreate) e crie um projeto (ou use um existente).
 2. Em **APIs e Serviços → Biblioteca**, procure **Google Drive API** e clique em **Ativar**.
 3. Em **APIs e Serviços → Tela de consentimento OAuth**: escolha **Externo**, preencha nome do app e seu e-mail, e deixe a publicação em **Testing**. Em **Test users**, adicione o seu próprio e-mail do Google — assim só você acessa, e o Google não exige verificação do app.
-4. Em **APIs e Serviços → Credenciais → Criar credenciais → ID do cliente OAuth**: tipo **App da Web**. Em **Origens JavaScript autorizadas**, adicione o endereço onde o app roda (ex.: `http://localhost:5173` para rodar localmente).
+4. Em **APIs e Serviços → Credenciais → Criar credenciais → ID do cliente OAuth**: tipo **App da Web**. Em **Origens JavaScript autorizadas**, adicione `https://feehiwata2930-ctrl.github.io` (para usar o link do GitHub Pages acima) e, se também for rodar localmente, `http://localhost:5173`. Repare que é só a origem (protocolo + domínio), sem o caminho `/claude/tatucorte/` depois.
 5. Copie o **Client ID** gerado (termina em `.apps.googleusercontent.com`).
 6. Abra o app, cole o Client ID na tela inicial e clique em **Salvar e continuar**.
 7. Clique em **Entrar com o Google Drive** e autorize o acesso — pronto, seus decalques já ficam salvos no seu Drive.
