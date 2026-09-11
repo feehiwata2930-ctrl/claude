@@ -12,7 +12,6 @@ Feito com base no funcionamento de apps de referência do mercado (como o *Tatto
 - **Biblioteca**: todos os decalques gerados ficam salvos ali, com tamanho real (mm), cliente associado (opcional) e um botão para **baixar o PNG**.
 - **Montar folha**: arraste vários decalques salvos para uma folha (A4, A5, Carta ou A3), redimensione, gire, organize automaticamente para aproveitar melhor o papel, e exporte um PDF em tamanho real, pronto para imprimir.
 - **Ampliar & cortar**: para peças maiores que uma folha, defina o tamanho final desejado (em mm) e o app divide o desenho em várias páginas com marcas de corte e numeração de linha/coluna, para imprimir e montar.
-- **Gerador de Prompt**: assistente em etapas (tema, corpo/composição, estilo/luz/tonalidade, atmosfera/técnica) que te guia com perguntas e sugestões — incluindo um botão de sortear — até montar um prompt único e completo para gerar referências de tatuagem realista em preto e cinza. Gera automaticamente duas versões prontas para copiar: uma em inglês com parâmetros para o **Midjourney** e outra em português, descritiva, para o **ChatGPT/DALL·E**. As combinações ficam salvas num histórico local.
 - **Clientes**: organize decalques por cliente.
 
 ## Onde os dados ficam salvos
@@ -22,7 +21,6 @@ Feito com base no funcionamento de apps de referência do mercado (como o *Tatto
 - Abrir o link e usar — não tem nenhuma etapa de configuração antes.
 - Os dados **não** aparecem automaticamente em outro computador/celular — cada navegador guarda os seus. Use o botão de **baixar PNG** em cada decalque (na Biblioteca) para salvar os arquivos como quiser, transferir, ou enviar para impressão.
 - Limpar o histórico/dados do site nesse navegador apaga os decalques salvos — evite fazer isso, ou baixe uma cópia antes.
-- O histórico de prompts gerados usa `localStorage` (mais simples que o IndexedDB dos decalques) e também fica só neste navegador.
 
 ## Rodando localmente
 

@@ -4,7 +4,7 @@ import { EMPTY_DB } from './types'
 import { newId } from './lib/id'
 import { deleteImage, forgetImageObjectUrl, loadDb, saveDb, saveImage } from './lib/localdb'
 
-export type View = 'estudio' | 'biblioteca' | 'folha' | 'ampliar' | 'clientes' | 'prompt'
+export type View = 'estudio' | 'biblioteca' | 'folha' | 'ampliar' | 'clientes'
 
 interface AppState {
   loaded: boolean

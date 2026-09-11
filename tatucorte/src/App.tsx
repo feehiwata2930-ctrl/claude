@@ -6,7 +6,6 @@ import Library from './components/Library'
 import SheetEditor from './components/SheetEditor'
 import TilingStudio from './components/TilingStudio'
 import ClientsPanel from './components/ClientsPanel'
-import PromptStudio from './components/PromptStudio'
 
 export default function App() {
   const loaded = useApp((s) => s.loaded)
@@ -33,7 +32,6 @@ export default function App() {
       {view === 'biblioteca' && <Library />}
       {view === 'folha' && <SheetEditor />}
       {view === 'ampliar' && <TilingStudio />}
-      {view === 'prompt' && <PromptStudio />}
       {view === 'clientes' && <ClientsPanel />}
     </div>
   )
