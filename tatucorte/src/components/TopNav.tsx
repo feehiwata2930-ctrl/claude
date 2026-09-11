@@ -1,4 +1,4 @@
-import { Layers, Scissors, Sparkles, Users, WalletCards } from 'lucide-react'
+import { Layers, Scissors, Sparkles, Users, WalletCards, Wand2 } from 'lucide-react'
 import { useApp, type View } from '../store'
 
 const TABS: { id: View; label: string; icon: typeof Sparkles }[] = [
@@ -6,6 +6,7 @@ const TABS: { id: View; label: string; icon: typeof Sparkles }[] = [
   { id: 'biblioteca', label: 'Biblioteca', icon: Layers },
   { id: 'folha', label: 'Montar folha', icon: WalletCards },
   { id: 'ampliar', label: 'Ampliar & cortar', icon: Scissors },
+  { id: 'prompt', label: 'Gerador de Prompt', icon: Wand2 },
   { id: 'clientes', label: 'Clientes', icon: Users },
 ]
 
