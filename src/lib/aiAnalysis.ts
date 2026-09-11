@@ -61,7 +61,9 @@ export async function analyzeClipWithAI({
   }
 
   onProgress?.('analyzing')
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+  // Bound the network call explicitly — the SDK's own default (10 min) is
+  // far too long to sit on a stalled mobile connection before failing.
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, timeout: 45_000 })
 
   const content: Anthropic.ContentBlockParam[] = []
   frames.forEach((f) => {
