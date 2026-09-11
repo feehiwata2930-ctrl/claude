@@ -18,13 +18,15 @@ export default function StencilStudio() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const resultCanvasRef = useRef<HTMLCanvasElement | null>(null)
 
+  // Pré-visualização em resolução reduzida: o filtro bilateral (que preserva
+  // traços finos ao suavizar ruído) é pesado o bastante pra travar a interface
+  // se rodasse em resolução final a cada ajuste de slider. A versão em alta
+  // resolução só é gerada de novo na hora de salvar (handleSave).
   useEffect(() => {
     if (!sourceImg || !canvasRef.current) return
     const timeout = setTimeout(() => {
-      const stencilCanvas = generateStencil(sourceImg, settings)
-      resultCanvasRef.current = stencilCanvas
+      const stencilCanvas = generateStencil(sourceImg, settings, 800)
       const display = canvasRef.current
       if (!display) return
       display.width = stencilCanvas.width
@@ -50,11 +52,13 @@ export default function StencilStudio() {
   }
 
   async function handleSave() {
-    if (!resultCanvasRef.current) return
+    if (!sourceImg) return
     setSaving(true)
     setError(null)
     try {
-      const blob = await canvasToBlob(resultCanvasRef.current)
+      // Regenera em resolução final (a pré-visualização roda reduzida por performance).
+      const hiResCanvas = generateStencil(sourceImg, settings, 1600)
+      const blob = await canvasToBlob(hiResCanvas)
       await addDecalque({
         clientId: clientId || null,
         name: name || 'Decalque sem nome',
@@ -110,9 +114,16 @@ export default function StencilStudio() {
             <SliderField
               label="Sensibilidade do contorno"
               value={settings.threshold}
-              min={20}
-              max={300}
+              min={5}
+              max={150}
               onChange={(v) => setSettings((s) => ({ ...s, threshold: v }))}
+            />
+            <SliderField
+              label="Suavização (reduz ruído/textura)"
+              value={settings.blur}
+              min={0}
+              max={3}
+              onChange={(v) => setSettings((s) => ({ ...s, blur: v }))}
             />
             <SliderField
               label="Contraste da foto"

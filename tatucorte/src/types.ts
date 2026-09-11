@@ -8,8 +8,9 @@ export interface PaperSize {
 }
 
 export interface StencilSettings {
-  threshold: number // 0-255
+  threshold: number // limiar "alto" do Canny (sensibilidade do contorno)
   contrast: number // -100..100
+  blur: number // 0-4, raio do desfoque para reduzir ruído antes da detecção de bordas
   lineThickness: number // 0-3, dilation passes
   invert: boolean
 }
