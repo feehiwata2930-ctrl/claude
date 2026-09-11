@@ -40,6 +40,41 @@ function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
   })
 }
 
+function waitForMetadata(video: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const cleanup = () => {
+      video.removeEventListener('loadedmetadata', onLoaded)
+      video.removeEventListener('error', onError)
+      clearTimeout(timer)
+    }
+    const onLoaded = () => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve()
+    }
+    const onError = () => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error('failed to load video for motion analysis'))
+    }
+    // iOS Safari in particular can silently stall metadata loading on a
+    // <video> that was never attached to the DOM, with neither
+    // loadedmetadata nor error ever firing — bound the wait instead of
+    // hanging the whole analysis forever.
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error('timed out loading video for motion analysis'))
+    }, 8000)
+    video.addEventListener('loadedmetadata', onLoaded)
+    video.addEventListener('error', onError)
+  })
+}
+
 async function computeAudioEnergy(
   file: File,
   rangeStart: number,
@@ -85,53 +120,85 @@ async function computeMotionScores(
   step: number,
   onProgress?: (ratio: number) => void,
 ): Promise<number[]> {
+  const numStepsFallback = Math.max(1, Math.ceil((rangeEnd - rangeStart) / step))
+  try {
+    return await computeMotionScoresInner(clipUrl, rangeStart, rangeEnd, step, onProgress)
+  } catch {
+    // If the video never loads (e.g. an unsupported/corrupt file), fall
+    // back to a flat score rather than aborting the whole auto-cut.
+    onProgress?.(1)
+    return new Array(numStepsFallback).fill(0)
+  }
+}
+
+async function computeMotionScoresInner(
+  clipUrl: string,
+  rangeStart: number,
+  rangeEnd: number,
+  step: number,
+  onProgress?: (ratio: number) => void,
+): Promise<number[]> {
   const video = document.createElement('video')
   video.muted = true
   video.playsInline = true
   video.preload = 'auto'
-  video.src = clipUrl
+  // iOS Safari needs the element actually in the render tree to reliably
+  // load metadata and honor seeks — visually hidden, not display:none.
+  video.style.position = 'fixed'
+  video.style.width = '1px'
+  video.style.height = '1px'
+  video.style.opacity = '0'
+  video.style.pointerEvents = 'none'
+  video.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(video)
 
-  await new Promise<void>((resolve, reject) => {
-    video.onloadedmetadata = () => resolve()
-    video.onerror = () => reject(new Error('failed to load video for motion analysis'))
-  })
+  try {
+    video.src = clipUrl
+    await waitForMetadata(video)
 
-  const canvas = document.createElement('canvas')
-  canvas.width = 48
-  canvas.height = 27
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) return []
+    const canvas = document.createElement('canvas')
+    canvas.width = 48
+    canvas.height = 27
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return []
 
-  const numSteps = Math.max(1, Math.ceil((rangeEnd - rangeStart) / step))
-  const scores: number[] = []
-  let prev: Uint8ClampedArray | null = null
+    const numSteps = Math.max(1, Math.ceil((rangeEnd - rangeStart) / step))
+    const scores: number[] = []
+    let prev: Uint8ClampedArray | null = null
 
-  for (let i = 0; i < numSteps; i++) {
-    const t = Math.min(rangeEnd - 0.02, rangeStart + i * step)
-    try {
-      await seekTo(video, Math.max(0, t))
-    } catch {
-      // ignore seek failures, keep previous frame data
-    }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    const frame = ctx.getImageData(0, 0, canvas.width, canvas.height).data
-    if (prev) {
-      let diff = 0
-      for (let p = 0; p < frame.length; p += 4) {
-        const lumaCur = (frame[p] + frame[p + 1] + frame[p + 2]) / 3
-        const lumaPrev = (prev[p] + prev[p + 1] + prev[p + 2]) / 3
-        diff += Math.abs(lumaCur - lumaPrev)
+    for (let i = 0; i < numSteps; i++) {
+      const t = Math.min(rangeEnd - 0.02, rangeStart + i * step)
+      try {
+        await seekTo(video, Math.max(0, t))
+      } catch {
+        // ignore seek failures, keep previous frame data
       }
-      scores.push(diff / (frame.length / 4))
-    } else {
-      scores.push(0)
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+        if (prev) {
+          let diff = 0
+          for (let p = 0; p < frame.length; p += 4) {
+            const lumaCur = (frame[p] + frame[p + 1] + frame[p + 2]) / 3
+            const lumaPrev = (prev[p] + prev[p + 1] + prev[p + 2]) / 3
+            diff += Math.abs(lumaCur - lumaPrev)
+          }
+          scores.push(diff / (frame.length / 4))
+        } else {
+          scores.push(0)
+        }
+        prev = frame
+      } catch {
+        scores.push(0)
+      }
+      onProgress?.((i + 1) / numSteps)
     }
-    prev = frame
-    onProgress?.((i + 1) / numSteps)
-  }
 
-  video.src = ''
-  return scores
+    return scores
+  } finally {
+    video.src = ''
+    video.remove()
+  }
 }
 
 function normalize(arr: number[]): number[] {
