@@ -3,22 +3,26 @@ import { Download, Grid2x2, Plus, RotateCw, Save, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { PAPER_SIZES, paperDims } from '../lib/paper'
 import type { Decalque, PaperSizeId, SheetItem } from '../types'
-import { createSheet, deleteSheet, listSheetItems, replaceSheetItems, updateSheet } from '../lib/data'
 import { shelfPack } from '../lib/pack'
 import { buildSheetPdf, rotateCanvas } from '../lib/pdf'
 import { loadImage } from '../lib/stencil'
+import { getBinaryBlob } from '../lib/drive'
+import { ensureAccessToken } from '../lib/googleAuth'
+import DriveImage from './DriveImage'
 
 const STAGE_WIDTH_PX = 640
 
 type EditableItem = Omit<SheetItem, 'sheet_id'> & { decalque?: Decalque }
 
 export default function SheetEditor() {
-  const session = useApp((s) => s.session)
-  const decalques = useApp((s) => s.decalques)
-  const sheets = useApp((s) => s.sheets)
+  const decalques = useApp((s) => s.db.decalques)
+  const sheets = useApp((s) => s.db.sheets)
   const activeSheetId = useApp((s) => s.activeSheetId)
   const setActiveSheetId = useApp((s) => s.setActiveSheetId)
-  const refreshSheets = useApp((s) => s.refreshSheets)
+  const createSheetAction = useApp((s) => s.createSheet)
+  const updateSheetMetaAction = useApp((s) => s.updateSheetMeta)
+  const removeSheetAction = useApp((s) => s.removeSheet)
+  const replaceSheetItemsAction = useApp((s) => s.replaceSheetItems)
 
   const [name, setName] = useState('Folha sem nome')
   const [paperSize, setPaperSize] = useState<PaperSizeId>('a4')
@@ -39,15 +43,14 @@ export default function SheetEditor() {
 
   useEffect(() => {
     if (!activeSheetId) return
-    const sheet = sheets.find((s) => s.id === activeSheetId)
+    const state = useApp.getState()
+    const sheet = state.db.sheets.find((s) => s.id === activeSheetId)
     if (!sheet) return
     setName(sheet.name)
     setPaperSize(sheet.paper_size)
     setOrientation(sheet.orientation)
-    listSheetItems(sheet.id).then((rows) => {
-      setItems(rows.map((r) => ({ ...r, decalque: decalques.find((d) => d.id === r.decalque_id) })))
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const rows = state.db.sheet_items.filter((i) => i.sheet_id === activeSheetId)
+    setItems(rows.map((r) => ({ ...r, decalque: state.db.decalques.find((d) => d.id === r.decalque_id) })))
   }, [activeSheetId])
 
   function addDecalque(d: Decalque) {
@@ -139,19 +142,17 @@ export default function SheetEditor() {
   }
 
   async function handleSave() {
-    if (!session) return
     setSaving(true)
     setError(null)
     try {
       let sheetId = activeSheetId
       if (!sheetId) {
-        const created = await createSheet(session.user.id, name, paperSize, orientation)
-        sheetId = created.id
+        sheetId = await createSheetAction(name, paperSize, orientation)
         setActiveSheetId(sheetId)
       } else {
-        await updateSheet(sheetId, { name, paper_size: paperSize, orientation })
+        await updateSheetMetaAction(sheetId, { name, paper_size: paperSize, orientation })
       }
-      await replaceSheetItems(
+      await replaceSheetItemsAction(
         sheetId,
         items.map((it) => ({
           decalque_id: it.decalque_id,
@@ -162,7 +163,6 @@ export default function SheetEditor() {
           rotation: it.rotation,
         })),
       )
-      await refreshSheets()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar a folha.')
     } finally {
@@ -174,11 +174,12 @@ export default function SheetEditor() {
     setExporting(true)
     setError(null)
     try {
+      const token = await ensureAccessToken(false)
       const pdfItems = await Promise.all(
         items.map(async (it) => {
-          const url = it.decalque?.imageUrl
-          if (!url) throw new Error('Decalque sem imagem.')
-          const img = await loadImage(await (await fetch(url)).blob())
+          if (!it.decalque) throw new Error('Decalque sem imagem.')
+          const blob = await getBinaryBlob(token, it.decalque.image_file_id)
+          const img = await loadImage(blob)
           let canvas = document.createElement('canvas')
           canvas.width = img.naturalWidth
           canvas.height = img.naturalHeight
@@ -200,11 +201,10 @@ export default function SheetEditor() {
   async function handleDeleteSheet() {
     if (!activeSheetId) return
     if (!confirm('Excluir esta folha salva?')) return
-    await deleteSheet(activeSheetId)
+    await removeSheetAction(activeSheetId)
     setActiveSheetId(null)
     setItems([])
     setName('Folha sem nome')
-    await refreshSheets()
   }
 
   const availableDecalques = useMemo(() => decalques, [decalques])
@@ -302,7 +302,7 @@ export default function SheetEditor() {
                     : {}),
                 }}
               >
-                {it.decalque?.imageUrl && <img src={it.decalque.imageUrl} className="h-full w-full object-contain" draggable={false} />}
+                {it.decalque && <DriveImage fileId={it.decalque.image_file_id} alt={it.decalque.name} className="h-full w-full object-contain" />}
               </div>
 
               {selectedId === it.id && (
@@ -341,7 +341,7 @@ export default function SheetEditor() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
               {availableDecalques.map((d) => (
                 <button key={d.id} onClick={() => addDecalque(d)} className="rounded-lg border border-zinc-800 bg-white p-2 hover:border-pink-500">
-                  <img src={d.imageUrl} className="aspect-square w-full object-contain" />
+                  <DriveImage fileId={d.image_file_id} alt={d.name} className="aspect-square w-full object-contain" />
                   <p className="mt-1 truncate text-xs text-zinc-700">{d.name}</p>
                 </button>
               ))}

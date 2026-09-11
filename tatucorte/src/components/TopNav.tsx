@@ -1,6 +1,5 @@
 import { Layers, LogOut, Scissors, Settings, Sparkles, Users, WalletCards } from 'lucide-react'
 import { useApp, type View } from '../store'
-import { signOut } from '../lib/data'
 
 const TABS: { id: View; label: string; icon: typeof Sparkles }[] = [
   { id: 'estudio', label: 'Gerar decalque', icon: Sparkles },
@@ -13,7 +12,8 @@ const TABS: { id: View; label: string; icon: typeof Sparkles }[] = [
 export default function TopNav() {
   const view = useApp((s) => s.view)
   const setView = useApp((s) => s.setView)
-  const email = useApp((s) => s.session?.user.email)
+  const email = useApp((s) => s.account?.email)
+  const disconnect = useApp((s) => s.disconnect)
 
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
@@ -52,7 +52,7 @@ export default function TopNav() {
           >
             <Settings size={16} />
           </button>
-          <button onClick={() => signOut()} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-red-400" title="Sair">
+          <button onClick={() => disconnect()} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-red-400" title="Sair">
             <LogOut size={16} />
           </button>
         </div>

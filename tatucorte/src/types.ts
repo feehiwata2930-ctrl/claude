@@ -16,7 +16,6 @@ export interface StencilSettings {
 
 export interface Client {
   id: string
-  user_id: string
   name: string
   notes: string | null
   created_at: string
@@ -24,21 +23,17 @@ export interface Client {
 
 export interface Decalque {
   id: string
-  user_id: string
   client_id: string | null
   name: string
-  image_path: string
+  image_file_id: string
   width_mm: number
   height_mm: number
   settings: StencilSettings
   created_at: string
-  // resolved at runtime, not stored
-  imageUrl?: string
 }
 
 export interface Sheet {
   id: string
-  user_id: string
   name: string
   paper_size: PaperSizeId
   orientation: 'portrait' | 'landscape'
@@ -59,10 +54,19 @@ export interface SheetItem {
 
 export interface Tiling {
   id: string
-  user_id: string
   decalque_id: string
   target_width_mm: number
   target_height_mm: number
   paper_size: PaperSizeId
   created_at: string
 }
+
+export interface DriveDb {
+  clients: Client[]
+  decalques: Decalque[]
+  sheets: Sheet[]
+  sheet_items: SheetItem[]
+  tilings: Tiling[]
+}
+
+export const EMPTY_DB: DriveDb = { clients: [], decalques: [], sheets: [], sheet_items: [], tilings: [] }

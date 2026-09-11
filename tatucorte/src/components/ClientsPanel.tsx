@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import { Trash2, UserPlus } from 'lucide-react'
 import { useApp } from '../store'
-import { createClient, deleteClient } from '../lib/data'
 
 export default function ClientsPanel() {
-  const session = useApp((s) => s.session)
-  const clients = useApp((s) => s.clients)
-  const decalques = useApp((s) => s.decalques)
-  const refreshClients = useApp((s) => s.refreshClients)
+  const clients = useApp((s) => s.db.clients)
+  const decalques = useApp((s) => s.db.decalques)
+  const addClient = useApp((s) => s.addClient)
+  const removeClient = useApp((s) => s.removeClient)
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
-    if (!session || !name.trim()) return
+    if (!name.trim()) return
     setBusy(true)
     try {
-      await createClient(session.user.id, name.trim(), notes.trim())
+      await addClient(name.trim(), notes.trim())
       setName('')
       setNotes('')
-      await refreshClients()
     } finally {
       setBusy(false)
     }
@@ -28,8 +26,7 @@ export default function ClientsPanel() {
 
   async function handleDelete(id: string) {
     if (!confirm('Excluir este cliente? Os decalques associados continuam salvos, sem cliente.')) return
-    await deleteClient(id)
-    await refreshClients()
+    await removeClient(id)
   }
 
   return (

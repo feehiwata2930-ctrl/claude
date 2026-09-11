@@ -3,12 +3,10 @@ import { Save, Upload } from 'lucide-react'
 import { DEFAULT_STENCIL_SETTINGS, canvasToBlob, generateStencil, loadImage } from '../lib/stencil'
 import type { StencilSettings } from '../types'
 import { useApp } from '../store'
-import { createDecalque, uploadDecalqueImage } from '../lib/data'
 
 export default function StencilStudio() {
-  const session = useApp((s) => s.session)
-  const clients = useApp((s) => s.clients)
-  const refreshDecalques = useApp((s) => s.refreshDecalques)
+  const clients = useApp((s) => s.db.clients)
+  const addDecalque = useApp((s) => s.addDecalque)
   const setView = useApp((s) => s.setView)
 
   const [sourceImg, setSourceImg] = useState<HTMLImageElement | null>(null)
@@ -52,22 +50,19 @@ export default function StencilStudio() {
   }
 
   async function handleSave() {
-    if (!session || !resultCanvasRef.current) return
+    if (!resultCanvasRef.current) return
     setSaving(true)
     setError(null)
     try {
       const blob = await canvasToBlob(resultCanvasRef.current)
-      const path = await uploadDecalqueImage(session.user.id, blob)
-      await createDecalque({
-        userId: session.user.id,
+      await addDecalque({
         clientId: clientId || null,
         name: name || 'Decalque sem nome',
-        imagePath: path,
+        blob,
         widthMm,
         heightMm,
         settings,
       })
-      await refreshDecalques()
       setView('biblioteca')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar o decalque.')

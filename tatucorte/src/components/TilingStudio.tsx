@@ -5,13 +5,15 @@ import { PAPER_SIZES, paperDims } from '../lib/paper'
 import type { PaperSizeId } from '../types'
 import { buildTilingPdf } from '../lib/pdf'
 import { loadImage } from '../lib/stencil'
-import { createTiling, deleteTiling } from '../lib/data'
+import { getBinaryBlob } from '../lib/drive'
+import { ensureAccessToken } from '../lib/googleAuth'
+import DriveImage from './DriveImage'
 
 export default function TilingStudio() {
-  const session = useApp((s) => s.session)
-  const decalques = useApp((s) => s.decalques)
-  const tilings = useApp((s) => s.tilings)
-  const refreshTilings = useApp((s) => s.refreshTilings)
+  const decalques = useApp((s) => s.db.decalques)
+  const tilings = useApp((s) => s.db.tilings)
+  const addTiling = useApp((s) => s.addTiling)
+  const removeTiling = useApp((s) => s.removeTiling)
   const activeDecalqueForTiling = useApp((s) => s.activeDecalqueForTiling)
   const setActiveDecalqueForTiling = useApp((s) => s.setActiveDecalqueForTiling)
 
@@ -45,11 +47,13 @@ export default function TilingStudio() {
   }, [targetWidthMm, targetHeightMm, dims])
 
   async function handleExport() {
-    if (!decalque?.imageUrl) return
+    if (!decalque) return
     setBusy(true)
     setError(null)
     try {
-      const img = await loadImage(await (await fetch(decalque.imageUrl)).blob())
+      const token = await ensureAccessToken(false)
+      const blob = await getBinaryBlob(token, decalque.image_file_id)
+      const img = await loadImage(blob)
       const canvas = document.createElement('canvas')
       canvas.width = img.naturalWidth
       canvas.height = img.naturalHeight
@@ -64,12 +68,11 @@ export default function TilingStudio() {
   }
 
   async function handleSave() {
-    if (!session || !decalqueId) return
+    if (!decalqueId) return
     setBusy(true)
     setError(null)
     try {
-      await createTiling({ userId: session.user.id, decalqueId, targetWidthMm, targetHeightMm, paperSize })
-      await refreshTilings()
+      await addTiling({ decalqueId, targetWidthMm, targetHeightMm, paperSize })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar.')
     } finally {
@@ -138,7 +141,7 @@ export default function TilingStudio() {
 
       {decalque && (
         <div className="mt-4 flex flex-col items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:flex-row">
-          <img src={decalque.imageUrl} className="h-40 w-40 rounded-lg bg-white object-contain p-2" />
+          <DriveImage fileId={decalque.image_file_id} alt={decalque.name} className="h-40 w-40 rounded-lg bg-white object-contain p-2" />
           <div className="text-sm text-zinc-300">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-zinc-100">
               <Scissors size={14} /> {grid.cols} × {grid.rows} = {grid.cols * grid.rows} folha(s) necessárias
@@ -181,10 +184,7 @@ export default function TilingStudio() {
                     {d?.name ?? 'Decalque removido'} · {t.target_width_mm} × {t.target_height_mm} mm · {PAPER_SIZES[t.paper_size].label}
                   </span>
                   <button
-                    onClick={async () => {
-                      await deleteTiling(t.id)
-                      await refreshTilings()
-                    }}
+                    onClick={() => removeTiling(t.id)}
                     className="rounded-lg p-1.5 text-zinc-500 hover:bg-red-950 hover:text-red-400"
                   >
                     <Trash2 size={13} />
