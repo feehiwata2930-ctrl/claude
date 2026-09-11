@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Layers, Ruler, Scissors, Trash2, WalletCards } from 'lucide-react'
+import { Download, Layers, Ruler, Scissors, Trash2, WalletCards } from 'lucide-react'
 import { useApp } from '../store'
-import DriveImage from './DriveImage'
+import LocalImage from './LocalImage'
+import { getImageObjectUrl } from '../lib/localdb'
 
 export default function Library() {
   const decalques = useApp((s) => s.db.decalques)
@@ -24,6 +25,14 @@ export default function Library() {
     } finally {
       setBusyId(null)
     }
+  }
+
+  async function handleDownload(imageId: string, name: string) {
+    const url = await getImageObjectUrl(imageId)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${name || 'decalque'}.png`
+    a.click()
   }
 
   if (decalques.length === 0) {
@@ -62,7 +71,7 @@ export default function Library() {
         {filtered.map((d) => (
           <div key={d.id} className="group overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
             <div className="aspect-square bg-white p-2">
-              <DriveImage fileId={d.image_file_id} alt={d.name} className="h-full w-full object-contain" />
+              <LocalImage imageId={d.image_id} alt={d.name} className="h-full w-full object-contain" />
             </div>
             <div className="p-3">
               <p className="truncate text-sm font-medium text-zinc-200">{d.name}</p>
@@ -87,6 +96,13 @@ export default function Library() {
                   title="Ampliar e cortar em várias folhas"
                 >
                   <Scissors size={12} /> Ampliar
+                </button>
+                <button
+                  onClick={() => handleDownload(d.image_id, d.name)}
+                  className="rounded-lg bg-zinc-800 px-2 py-1.5 text-xs text-zinc-200 hover:bg-zinc-700"
+                  title="Baixar PNG"
+                >
+                  <Download size={12} />
                 </button>
                 <button
                   onClick={() => handleDelete(d.id)}

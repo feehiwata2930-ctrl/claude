@@ -1,4 +1,4 @@
-import { Layers, LogOut, Scissors, Settings, Sparkles, Users, WalletCards } from 'lucide-react'
+import { Layers, Scissors, Sparkles, Users, WalletCards } from 'lucide-react'
 import { useApp, type View } from '../store'
 
 const TABS: { id: View; label: string; icon: typeof Sparkles }[] = [
@@ -12,8 +12,6 @@ const TABS: { id: View; label: string; icon: typeof Sparkles }[] = [
 export default function TopNav() {
   const view = useApp((s) => s.view)
   const setView = useApp((s) => s.setView)
-  const email = useApp((s) => s.account?.email)
-  const disconnect = useApp((s) => s.disconnect)
 
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
@@ -43,19 +41,7 @@ export default function TopNav() {
           })}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          {email && <span className="mr-1 hidden text-xs text-zinc-500 sm:inline">{email}</span>}
-          <button
-            onClick={() => setView('config')}
-            className={`rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 ${view === 'config' ? 'bg-zinc-800 text-zinc-100' : ''}`}
-            title="Configurações"
-          >
-            <Settings size={16} />
-          </button>
-          <button onClick={() => disconnect()} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-red-400" title="Sair">
-            <LogOut size={16} />
-          </button>
-        </div>
+        <span className="ml-auto hidden shrink-0 text-xs text-zinc-500 sm:inline">Salvo neste navegador</span>
       </div>
     </header>
   )
