@@ -7,6 +7,23 @@ import { uid } from '../lib/id'
 import type { Clip } from '../types'
 
 const DURATIONS = [15, 30, 60]
+const PER_CLIP_TIMEOUT_MS = 70_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        clearTimeout(timer)
+        reject(err)
+      },
+    )
+  })
+}
 
 export default function AICutPanel() {
   const clips = useProjectStore((s) => s.clips)
@@ -22,6 +39,7 @@ export default function AICutPanel() {
   const [statusText, setStatusText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [resultCount, setResultCount] = useState<number | null>(null)
+  const [skipped, setSkipped] = useState<string[]>([])
 
   const estimatedCost = useMemo(() => {
     const total = clips.reduce((sum, c) => {
@@ -44,6 +62,7 @@ export default function AICutPanel() {
     setRunning(true)
     setError(null)
     setResultCount(null)
+    setSkipped([])
     const { analyzeClipWithAI, friendlyAIError } = await import('../lib/aiAnalysis')
     try {
       const sourceClips = originalClips ?? clips
@@ -51,38 +70,59 @@ export default function AICutPanel() {
         sourceClips.reduce((sum, c) => sum + Math.max(0, c.trimEnd - c.trimStart), 0) || 1
 
       const results: Clip[] = []
+      const failedClips: string[] = []
+
       for (let i = 0; i < sourceClips.length; i++) {
         const clip = sourceClips[i]
         const clipDuration = Math.max(0.1, clip.trimEnd - clip.trimStart)
         const clipTarget = Math.max(3, (clipDuration / totalSourceDuration) * target)
 
-        const segments = await analyzeClipWithAI({
-          clip,
-          targetDuration: clipTarget,
-          apiKey,
-          model,
-          onProgress: (stage) =>
-            setStatusText(
-              stage === 'extracting'
-                ? `Extraindo frames do vídeo ${i + 1}/${sourceClips.length}...`
-                : `Claude analisando o vídeo ${i + 1}/${sourceClips.length}...`,
-            ),
-        })
+        try {
+          // A hard ceiling per clip: whatever the reason (a stuck video
+          // decode, a stalled connection, anything not caught below), one
+          // bad clip must never hang the whole batch — it's skipped instead.
+          const segments = await withTimeout(
+            analyzeClipWithAI({
+              clip,
+              targetDuration: clipTarget,
+              apiKey,
+              model,
+              onProgress: (stage) =>
+                setStatusText(
+                  stage === 'extracting'
+                    ? `Extraindo frames do vídeo ${i + 1}/${sourceClips.length}...`
+                    : `Claude analisando o vídeo ${i + 1}/${sourceClips.length}...`,
+                ),
+            }),
+            PER_CLIP_TIMEOUT_MS,
+            `Tempo esgotado ao analisar "${clip.name}".`,
+          )
 
-        segments.forEach((seg, segIdx) => {
-          results.push({
-            ...clip,
-            id: uid(),
-            name: segments.length > 1 ? `${clip.name} (corte IA ${segIdx + 1}/${segments.length})` : clip.name,
-            trimStart: seg.start,
-            trimEnd: seg.end,
-            aiReason: seg.reason,
+          segments.forEach((seg, segIdx) => {
+            results.push({
+              ...clip,
+              id: uid(),
+              name:
+                segments.length > 1 ? `${clip.name} (corte IA ${segIdx + 1}/${segments.length})` : clip.name,
+              trimStart: seg.start,
+              trimEnd: seg.end,
+              aiReason: seg.reason,
+            })
           })
-        })
+        } catch (err) {
+          failedClips.push(clip.name)
+          console.warn(`Corte com IA: falhou em "${clip.name}"`, err)
+        }
       }
 
+      setSkipped(failedClips)
+
       if (results.length === 0) {
-        throw new Error('A IA não encontrou momentos para recomendar. Tente uma duração alvo diferente.')
+        throw new Error(
+          failedClips.length > 0
+            ? `Não deu pra analisar nenhum vídeo (falhou em: ${failedClips.join(', ')}). Verifique sua conexão e tente de novo.`
+            : 'A IA não encontrou momentos para recomendar. Tente uma duração alvo diferente.',
+        )
       }
 
       applyAutoCut(results)
@@ -208,11 +248,19 @@ export default function AICutPanel() {
             </p>
           )}
 
+          {skipped.length > 0 && !running && (
+            <p className="text-xs text-amber-400">
+              Não deu pra analisar: {skipped.join(', ')} (pulado{skipped.length === 1 ? '' : 's'} — os
+              outros vídeos foram processados normalmente).
+            </p>
+          )}
+
           {originalClips && !running && (
             <button
               onClick={() => {
                 restoreOriginalClips()
                 setResultCount(null)
+                setSkipped([])
               }}
               className="flex items-center justify-center gap-2 rounded-lg border border-zinc-700 py-2 text-xs text-zinc-300 hover:bg-zinc-800"
             >
