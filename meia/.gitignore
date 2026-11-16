@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+outputs/*
+!outputs/.gitkeep
+models/
+loras/*.safetensors
+dataset/*
+!dataset/.gitkeep
+training/
+.gradio/

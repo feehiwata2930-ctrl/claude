@@ -1,0 +1,10 @@
+# Instale o PyTorch ANTES, com a versão certa para sua GPU:
+#   https://pytorch.org/get-started/locally/
+#   ex. (NVIDIA, CUDA 12.4):  pip install torch --index-url https://download.pytorch.org/whl/cu124
+diffusers>=0.31
+transformers>=4.44
+accelerate>=0.33
+safetensors>=0.4
+peft>=0.12
+gradio>=4.44
+Pillow>=10
