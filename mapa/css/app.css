@@ -1,0 +1,122 @@
+/* ===== Base ===== */
+:root {
+  --fundo: #0b0b0c;
+  --painel: #18181b;
+  --painel-2: #26262b;
+  --linha: #3a3a41;
+  --texto: #f2f2f3;
+  --texto-fraco: #9a9aa3;
+  --destaque: #e8c35a;      /* dourado: ação principal */
+  --perigo: #e5484d;
+  --botao: 56px;            /* tamanho mínimo de toque (uso com luva) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; height: 100%; background: var(--fundo); color: var(--texto);
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;          /* sem menu de "salvar imagem" ao segurar */
+}
+.tela { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.tela[hidden] { display: none; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+svg { display: block; }
+
+/* Botão redondo padrão (ícone) */
+.bt {
+  width: var(--botao); height: var(--botao); border-radius: 16px;
+  display: grid; place-items: center;
+  background: rgba(24, 24, 27, .82); color: var(--texto);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .08);
+}
+.bt svg { width: 28px; height: 28px; }
+.bt:active { transform: scale(.94); }
+
+/* ===== Galeria ===== */
+#tela-galeria { padding: calc(var(--sat) + 12px) 12px 0; }
+.grade {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  align-content: start; padding-bottom: calc(var(--sab) + 120px);
+}
+.mini {
+  position: relative; aspect-ratio: 1; border-radius: 18px; overflow: hidden;
+  background: var(--painel); border: 1px solid var(--linha);
+}
+.mini img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.mini .cm {
+  position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 10px;
+  background: rgba(0, 0, 0, .62); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+/* Estado "apagar?": a miniatura fica vermelha com lixeira e X grandes */
+.mini .apagar {
+  position: absolute; inset: 0; display: none; gap: 14px;
+  align-items: center; justify-content: center; background: rgba(229, 72, 77, .78);
+}
+.mini.apagando .apagar { display: flex; }
+.mini .apagar button {
+  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(0, 0, 0, .55); color: #fff;
+}
+.mini .apagar button.sim { background: #fff; color: var(--perigo); }
+.mini .apagar svg { width: 30px; height: 30px; }
+.mini.pressionando { transform: scale(.96); transition: transform .35s; }
+
+.mais {
+  position: fixed; left: 50%; bottom: calc(var(--sab) + 24px); transform: translateX(-50%);
+  width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--destaque); color: #1a1500; box-shadow: 0 8px 28px rgba(0, 0, 0, .55);
+}
+.mais svg { width: 36px; height: 36px; }
+.mais:active { transform: translateX(-50%) scale(.94); }
+.grade:empty + .mais { bottom: 50%; transform: translate(-50%, 50%); width: 112px; height: 112px; }
+.grade:empty + .mais svg { width: 52px; height: 52px; }
+
+/* ===== Novo projeto (imagem + largura em cm) ===== */
+#tela-novo { padding: calc(var(--sat) + 10px) 14px calc(var(--sab) + 12px); gap: 10px; }
+.novo-previa { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.novo-previa img { max-width: 100%; max-height: calc(100% - 34px); min-height: 0; border-radius: 10px; object-fit: contain; }
+.regua { width: 100%; color: var(--destaque); }
+.regua svg { width: 100%; height: 22px; }
+.novo-valor {
+  display: flex; align-items: baseline; justify-content: center; gap: 8px;
+  font-size: 46px; font-weight: 700; font-variant-numeric: tabular-nums; height: 58px;
+}
+.novo-valor .vazio { color: var(--texto-fraco); }
+.novo-valor small { font-size: 22px; font-weight: 600; color: var(--texto-fraco); }
+.teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.teclado button {
+  height: 60px; border-radius: 14px; background: var(--painel-2);
+  font-size: 26px; font-weight: 600; display: grid; place-items: center;
+}
+.teclado button:active { background: var(--linha); }
+.teclado svg { width: 28px; height: 28px; }
+.novo-acoes { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.novo-acoes button { height: 64px; border-radius: 16px; display: grid; place-items: center; background: var(--painel-2); }
+.novo-acoes button.ok { background: var(--destaque); color: #1a1500; }
+.novo-acoes button.ok:disabled { background: var(--painel-2); color: var(--linha); }
+.novo-acoes svg { width: 32px; height: 32px; }
+
+/* ===== Visualizador ===== */
+#tela-visualizador { background: #000; }
+#tela-visualizador canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.vz-voltar { position: absolute; top: calc(var(--sat) + 8px); left: calc(var(--sal) + 8px); }
+/* Coluna de lentes à direita */
+.lentes {
+  position: absolute; right: calc(var(--sar) + 8px); top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.lentes .bt.ativa { background: var(--destaque); color: #1a1500; border-color: transparent; }
+.lentes .bt:disabled { opacity: .35; }
+
+/* Áreas seguras em px, para o JavaScript conseguir ler (env() não é legível direto) */
+.tela {
+  --sat-px: env(safe-area-inset-top, 0px); --sab-px: env(safe-area-inset-bottom, 0px);
+  --sal-px: env(safe-area-inset-left, 0px); --sar-px: env(safe-area-inset-right, 0px);
+}
