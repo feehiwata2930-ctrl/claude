@@ -22,6 +22,8 @@ export const TONS_DE_PELE = [
 
 /** Cor do preto cicatrizado: nunca é preto absoluto, puxa levemente para o azul. */
 export const COR_TINTA = [24, 27, 31];
+/** Preto recém-feito: bem mais escuro que o cicatrizado. */
+export const COR_FRESCA = [9, 10, 12];
 
 /** Ordena do mais escuro para o mais claro (é a ordem da barra). */
 export function ordenarPotes(potes) {
@@ -29,9 +31,20 @@ export function ordenarPotes(potes) {
 }
 
 /** Cor de um escurecimento (0–100 %) sobre um tom de pele: mistura pele → tinta. */
-export function corNaPele(pct, pele) {
+export function corNaPele(pct, pele, tinta = COR_TINTA) {
   const k = Math.min(1, Math.max(0, pct / 100));
-  return [0, 1, 2].map((i) => Math.round(pele[i] + (COR_TINTA[i] - pele[i]) * k));
+  return [0, 1, 2].map((i) => Math.round(pele[i] + (tinta[i] - pele[i]) * k));
+}
+
+/** Flags (1/0) dos potes que são pele limpa. Sem pote de 0 %, vale o mais claro se ≤ 5 %. */
+export function potesLimpos(potes) {
+  const flags = Uint8Array.from(potes.map((p) => (p.pct <= 0 ? 1 : 0)));
+  if (!flags.includes(1)) {
+    let min = 0;
+    potes.forEach((p, i) => { if (p.pct < potes[min].pct) min = i; });
+    if (potes[min].pct <= 5) flags[min] = 1;
+  }
+  return flags;
 }
 
 /**

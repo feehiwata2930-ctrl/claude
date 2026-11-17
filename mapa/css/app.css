@@ -155,3 +155,18 @@ svg { display: block; }
 }
 .lupa.pulso .lupa-cor { animation: pulso .28s ease-out; }
 @keyframes pulso { 0% { transform: scale(.55); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* Seletor da lente Na pele: 4 tons + cicatrizado */
+.opcoes-pele {
+  position: absolute; left: calc(var(--sal) + 6px); right: calc(var(--sar) + 6px);
+  bottom: calc(var(--sab) + 80px); display: flex; justify-content: center; gap: 8px;
+}
+.opcoes-pele[hidden] { display: none; }
+.opcoes-pele .tom {
+  width: var(--botao); height: var(--botao); border-radius: 16px; padding: 7px; display: flex;
+  background: rgba(24, 24, 27, .82); border: 1px solid rgba(255, 255, 255, .08);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.opcoes-pele .tom i { flex: 1; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .35); }
+.opcoes-pele .tom.ativa { border-color: var(--destaque); box-shadow: 0 0 0 2px var(--destaque); }
+.opcoes-pele .cic.ativa { background: var(--destaque); color: #1a1500; border-color: transparent; }

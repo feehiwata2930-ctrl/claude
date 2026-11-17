@@ -12,6 +12,9 @@ export const icones = {
   apagarTecla: svg('<path d="M9 5h11v14H9l-6-7z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/>'),
   engrenagem: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/>'),
 
+  // Cicatrizado: curativo
+  cicatrizado: svg('<rect x="2.5" y="8" width="19" height="8" rx="4" transform="rotate(-35 12 12)"/><path d="M10 10.5l.01 0M12 12l.01 0M14 13.5l.01 0" stroke-width="2.6"/>'),
+
   // --- Lentes ---
   // Referência: uma foto
   referencia: svg('<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 2.5-2.5L20 17"/>'),

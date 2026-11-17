@@ -1,7 +1,7 @@
 // processamento.js — conversa com o Web Worker. Reduz a referência para ~1400 px,
 // envia junto com as medidas reais e repassa cada resultado assim que chega.
 
-import { tabelaDePotes } from './potes.js';
+import { tabelaDePotes, potesLimpos } from './potes.js';
 
 const LADO_PROC = 1400;   // maior lado da imagem processada
 let worker = null, tarefa = 0, ouvinte = null;
@@ -37,6 +37,7 @@ export function processar(base, larguraCm, ajustes, aoResultado) {
     pxPorMm: l / (larguraCm * 10),
     contraste: ajustes.contraste, limpezaMm: ajustes.limpezaMm,
     tabela: tabelaDePotes(ajustes.potes), nPotes: ajustes.potes.length,
+    limpo: potesLimpos(ajustes.potes),
   }, [rgba]);
   return { l, a };
 }

@@ -2,6 +2,7 @@
 // e devolve os resultados aos poucos (Potes primeiro; depois Bordas, Textura, Direção).
 
 import { escurecimento, borrar } from './filtros.js';
+import { classificarLuz } from './luz.js';
 import { quantizar, absorverIlhas } from './mapa-potes.js';
 
 let tarefaAtual = 0;
@@ -16,7 +17,7 @@ self.onmessage = (e) => {
 };
 
 /**
- * @param m { tarefa, rgba:ArrayBuffer, l, a, pxPorMm, contraste, limpezaMm, tabela:Uint8Array, nPotes }
+ * @param m { tarefa, rgba:ArrayBuffer, l, a, pxPorMm, contraste, limpezaMm, tabela:Uint8Array, nPotes, limpo:Uint8Array }
  */
 async function processar(m) {
   const { tarefa, l, a, pxPorMm } = m;
@@ -38,6 +39,22 @@ async function processar(m) {
   // Envia uma cópia: o worker ainda vai usar o mapa nas próximas lentes.
   const copia = mapa.slice();
   self.postMessage({ tipo: 'potes', tarefa, l, a, mapa: copia }, [copia.buffer]);
+
+  // 3) NA PELE — escurecimento recém-tatuado e versão cicatrizada:
+  //    espalhamento leve da tinta (~0,3 mm) e perda de ~1 degrau de contraste (×0,83).
+  const fresca = new Uint8Array(n), cicatrizada = new Uint8Array(n);
+  const espalhada = borrar(d, l, a, 0.3 * pxPorMm);
+  for (let i = 0; i < n; i++) {
+    fresca[i] = Math.round(d[i] * 255);
+    cicatrizada[i] = Math.round(espalhada[i] * 0.83 * 255);
+  }
+  await respirar(); if (!vivo()) return;
+  self.postMessage({ tipo: 'pele', tarefa, l, a, fresca, cicatrizada }, [fresca.buffer, cicatrizada.buffer]);
+
+  // 4) LUZ — pele limpa dentro da peça × fundo
+  const cls = classificarLuz(mapa, l, a, m.limpo, m.nPotes);
+  if (!vivo()) return;
+  self.postMessage({ tipo: 'luz', tarefa, l, a, cls }, [cls.buffer]);
 
   self.postMessage({ tipo: 'fim', tarefa });
 }

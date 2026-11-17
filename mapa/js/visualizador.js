@@ -6,10 +6,10 @@ import { lerProjeto, lerImagem } from './db.js';
 import { carregarImg, paraCanvas } from './imagem.js';
 import { ligarGestos } from './gestos.js';
 import { icones } from './icones.js';
-import { ajustes } from './ajustes.js';
-import { TONS_DE_PELE, corNaPele } from './potes.js';
+import { ajustes, mudarAjustes } from './ajustes.js';
+import { TONS_DE_PELE, COR_TINTA, COR_FRESCA, corNaPele } from './potes.js';
 import { processar, cancelarProcessamento } from './processamento.js';
-import { camadaPotes, camadaDestaque, soltarCanvas } from './lentes.js';
+import { camadaPotes, camadaPele, camadaLuz, camadaDestaque, soltarCanvas } from './lentes.js';
 import { iniciarBarra, desenharBarra, marcarPote } from './barra-potes.js';
 import { iniciarLupa, mostrarLupa, esconderLupa, pulsar } from './lupa.js';
 import { vibrar } from './tatil.js';
@@ -31,6 +31,9 @@ let cores = [];                             // cor cicatrizada de cada pote
 let poteFixo = null;                        // pote aceso pela barra
 let poteSonda = null;                       // pote sob o dedo (segurando)
 let destaque = null, destaqueDe = null;     // canvas do destaque e qual pote ele mostra
+let peleDados = null;                       // { fresca, cic, l, a } — escurecimento 0–255
+let luzDados = null;                        // { cls, l, a }
+let rascunho = null, listras = null;        // para desenhar as listras da lente Luz
 
 export function iniciarVisualizador(el, a) {
   raiz = el; acoes = a;   // { aoVoltar() }
@@ -39,6 +42,10 @@ export function iniciarVisualizador(el, a) {
     <button class="bt vz-voltar" aria-label="Voltar">${icones.voltar}</button>
     <div class="lentes">${LENTES.map((l) =>
       `<button class="bt" data-lente="${l}" disabled>${icones[l]}</button>`).join('')}</div>
+    <div class="opcoes-pele" hidden>
+      ${TONS_DE_PELE.map((t, i) => `<button class="tom" data-tom="${i}" aria-label="Tom ${i + 1}"><i style="background:rgb(${t.join(',')})"></i></button>`).join('')}
+      <button class="bt cic" aria-label="Cicatrizado">${icones.cicatrizado}</button>
+    </div>
     <div class="barra-potes"></div>`;
   canvas = raiz.querySelector('canvas');
   ctx = canvas.getContext('2d');
@@ -46,6 +53,13 @@ export function iniciarVisualizador(el, a) {
   raiz.querySelector('.lentes').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b && !b.disabled) trocarLente(b.dataset.lente);
+  });
+  raiz.querySelector('.opcoes-pele').addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.classList.contains('tom')) await mudarAjustes({ tomPele: Number(b.dataset.tom) });
+    else await mudarAjustes({ cicatrizado: !ajustes().cicatrizado });
+    recolorir();
   });
   iniciarBarra(raiz.querySelector('.barra-potes'), (i) => {
     poteFixo = poteFixo === i ? null : i;
@@ -73,10 +87,11 @@ export async function abrirProjeto(id) {
   ajustarCanvas();
   vista = enquadrada();
   lente = 'referencia'; poteFixo = poteSonda = null;
-  cores = ajustes().potes.map((p) => corNaPele(p.pct, TONS_DE_PELE[ajustes().tomPele]));
-  desenharBarra(cores);
+  peleDados = luzDados = null;
+  atualizarCores();
   marcarPote(null);
   marcarLentes();
+  mostrarOpcoes();
   desenhar();
   processar(base, projeto.larguraCm, ajustes(), receber);
 }
@@ -87,7 +102,9 @@ export function fecharProjeto() {
   esconderLupa();
   Object.values(camadas).forEach(soltarCanvas);   // devolve a memória ao iPhone
   soltarCanvas(destaque); soltarCanvas(base);
+  if (rascunho) rascunho.width = rascunho.height = 0;
   camadas = {}; destaque = null; destaqueDe = null; potes = null; base = null; projeto = null;
+  peleDados = luzDados = null;
 }
 
 // ---------- lentes ----------
@@ -100,12 +117,61 @@ function receber(m) {
     camadas.potes = camadaPotes(m.mapa, m.l, m.a, cores);
     marcarLentes();
     atualizarDestaque();
+  } else if (m.tipo === 'pele') {
+    peleDados = { fresca: m.fresca, cic: m.cicatrizada, l: m.l, a: m.a };
+    refazerPele();
+    marcarLentes();
+    if (lente === 'pele') desenhar();
+  } else if (m.tipo === 'luz') {
+    luzDados = { cls: m.cls, l: m.l, a: m.a };
+    refazerLuz();
+    marcarLentes();
+    if (lente === 'luz') desenhar();
   } else if (m.tipo === 'erro') {
     console.error('processamento:', m.texto);
   }
 }
 
 const pronta = (l) => l === 'referencia' || !!camadas[l];
+
+/** Cor de cada pote na pele escolhida (é o que a barra de baixo mostra). */
+function atualizarCores() {
+  cores = ajustes().potes.map((p) => corNaPele(p.pct, TONS_DE_PELE[ajustes().tomPele]));
+  desenharBarra(cores);
+  marcarPote(poteSonda ?? poteFixo);
+}
+
+function refazerPele() {
+  if (!peleDados) return;
+  const aj = ajustes();
+  camadas.pele = camadaPele(camadas.pele, aj.cicatrizado ? peleDados.cic : peleDados.fresca,
+    peleDados.l, peleDados.a, TONS_DE_PELE[aj.tomPele], aj.cicatrizado ? COR_TINTA : COR_FRESCA);
+}
+
+function refazerLuz() {
+  if (!luzDados || !peleDados) return;
+  soltarCanvas(camadas.luz); soltarCanvas(camadas.luzMascara);
+  const { base: b, mascara } = camadaLuz(luzDados.cls, peleDados.fresca, luzDados.l, luzDados.a);
+  camadas.luz = b; camadas.luzMascara = mascara;
+}
+
+/** Mudou o tom de pele ou o "cicatrizado": refaz tudo que depende deles. */
+function recolorir() {
+  atualizarCores();
+  if (potes) { soltarCanvas(camadas.potes); camadas.potes = camadaPotes(potes.mapa, potes.l, potes.a, cores); }
+  refazerPele();
+  mostrarOpcoes();
+  desenhar();
+}
+
+/** Seletor de pele só aparece na lente Na pele. */
+function mostrarOpcoes() {
+  const caixa = raiz.querySelector('.opcoes-pele');
+  caixa.hidden = lente !== 'pele';
+  const aj = ajustes();
+  caixa.querySelectorAll('.tom').forEach((b) => b.classList.toggle('ativa', Number(b.dataset.tom) === aj.tomPele));
+  caixa.querySelector('.cic').classList.toggle('ativa', aj.cicatrizado);
+}
 
 function marcarLentes() {
   raiz.querySelectorAll('.lentes button').forEach((b) => {
@@ -118,6 +184,7 @@ function trocarLente(nome) {
   if (!pronta(nome)) return;
   lente = nome;
   marcarLentes();
+  mostrarOpcoes();
   desenhar();
 }
 
@@ -217,8 +284,40 @@ function pintar() {
   ctx.imageSmoothingEnabled = true;   // zoom sempre suave, sem "quadradinhos"
   ctx.imageSmoothingQuality = 'high';
   // As camadas têm ~1400 px; são esticadas para o tamanho da referência.
-  ctx.drawImage(camadas[lente] || base, 0, 0, base.width, base.height);
+  ctx.drawImage(camadas[lente] || base, 0, 0, base.width, base.height);   // (lente Luz: 'luz' é a base)
+  if (lente === 'luz' && camadas.luzMascara) pintarListras(dpr);
   if (destaqueDe !== null && destaque) ctx.drawImage(destaque, 0, 0, base.width, base.height);
+}
+
+/**
+ * Listras azul-claras da lente Luz. Ficam em espaço de TELA (largura constante em
+ * qualquer zoom): desenha o padrão num rascunho, recorta pela máscara da pele limpa
+ * e cola por cima.
+ */
+function pintarListras(dpr) {
+  if (!listras) {
+    const T = Math.round(15 * dpr), t = document.createElement('canvas');
+    t.width = t.height = T;
+    const c = t.getContext('2d');
+    c.strokeStyle = 'rgb(150, 208, 255)'; c.lineWidth = T * 0.34;
+    for (const x0 of [-T, 0, T]) { c.beginPath(); c.moveTo(x0, T); c.lineTo(x0 + T, 0); c.stroke(); }
+    listras = ctx.createPattern(t, 'repeat');
+  }
+  if (!rascunho) rascunho = document.createElement('canvas');
+  if (rascunho.width !== canvas.width || rascunho.height !== canvas.height) {
+    rascunho.width = canvas.width; rascunho.height = canvas.height;
+  }
+  const r = rascunho.getContext('2d');
+  r.setTransform(1, 0, 0, 1, 0, 0);
+  r.globalCompositeOperation = 'source-over';
+  r.clearRect(0, 0, rascunho.width, rascunho.height);
+  r.fillStyle = listras;
+  r.fillRect(0, 0, rascunho.width, rascunho.height);
+  r.globalCompositeOperation = 'destination-in';
+  r.setTransform(vista.escala * dpr, 0, 0, vista.escala * dpr, vista.x * dpr, vista.y * dpr);
+  r.drawImage(camadas.luzMascara, 0, 0, base.width, base.height);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(rascunho, 0, 0);
 }
 
 // ---------- animação suave (toque duplo) ----------
