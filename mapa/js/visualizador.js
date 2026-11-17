@@ -9,7 +9,8 @@ import { icones } from './icones.js';
 import { ajustes, mudarAjustes } from './ajustes.js';
 import { TONS_DE_PELE, COR_TINTA, COR_FRESCA, corNaPele } from './potes.js';
 import { processar, cancelarProcessamento } from './processamento.js';
-import { camadaPotes, camadaPele, camadaLuz, camadaDestaque, soltarCanvas } from './lentes.js';
+import { camadaPotes, camadaPele, camadaLuz, camadaClasses, camadaDestaque, soltarCanvas, PALETA_BORDAS, PALETA_TEXTURA } from './lentes.js';
+import { desenharTracinhos } from './tracinhos.js';
 import { iniciarBarra, desenharBarra, marcarPote } from './barra-potes.js';
 import { iniciarLupa, mostrarLupa, esconderLupa, pulsar } from './lupa.js';
 import { vibrar } from './tatil.js';
@@ -33,6 +34,7 @@ let poteSonda = null;                       // pote sob o dedo (segurando)
 let destaque = null, destaqueDe = null;     // canvas do destaque e qual pote ele mostra
 let peleDados = null;                       // { fresca, cic, l, a } — escurecimento 0–255
 let luzDados = null;                        // { cls, l, a }
+let direcaoDados = null;                    // { angulo, forca, l, a } — campo de direção
 let rascunho = null, listras = null;        // para desenhar as listras da lente Luz
 
 export function iniciarVisualizador(el, a) {
@@ -87,7 +89,7 @@ export async function abrirProjeto(id) {
   ajustarCanvas();
   vista = enquadrada();
   lente = 'referencia'; poteFixo = poteSonda = null;
-  peleDados = luzDados = null;
+  peleDados = luzDados = direcaoDados = null;
   atualizarCores();
   marcarPote(null);
   marcarLentes();
@@ -104,7 +106,7 @@ export function fecharProjeto() {
   soltarCanvas(destaque); soltarCanvas(base);
   if (rascunho) rascunho.width = rascunho.height = 0;
   camadas = {}; destaque = null; destaqueDe = null; potes = null; base = null; projeto = null;
-  peleDados = luzDados = null;
+  peleDados = luzDados = direcaoDados = null;
 }
 
 // ---------- lentes ----------
@@ -127,6 +129,23 @@ function receber(m) {
     refazerLuz();
     marcarLentes();
     if (lente === 'luz') desenhar();
+  } else if (m.tipo === 'bordas' && peleDados) {
+    soltarCanvas(camadas.bordas);
+    camadas.bordas = camadaClasses(m.cls, peleDados.fresca, m.l, m.a, PALETA_BORDAS, 0.5);
+    marcarLentes();
+    if (lente === 'bordas') desenhar();
+  } else if (m.tipo === 'textura' && peleDados) {
+    soltarCanvas(camadas.textura);
+    camadas.textura = camadaClasses(m.cls, peleDados.fresca, m.l, m.a, PALETA_TEXTURA, 0.5);
+    marcarLentes();
+    if (lente === 'textura') desenhar();
+  } else if (m.tipo === 'direcao' && peleDados) {
+    direcaoDados = { angulo: m.angulo, forca: m.forca, l: m.l, a: m.a };
+    soltarCanvas(camadas.direcao);
+    // base: a referência em cinza, um pouco mais clara para os tracinhos aparecerem
+    camadas.direcao = camadaClasses(new Uint8Array(m.l0 * m.a0), peleDados.fresca, m.l0, m.a0, [null], 0.62);
+    marcarLentes();
+    if (lente === 'direcao') desenhar();
   } else if (m.tipo === 'erro') {
     console.error('processamento:', m.texto);
   }
@@ -286,6 +305,10 @@ function pintar() {
   // As camadas têm ~1400 px; são esticadas para o tamanho da referência.
   ctx.drawImage(camadas[lente] || base, 0, 0, base.width, base.height);   // (lente Luz: 'luz' é a base)
   if (lente === 'luz' && camadas.luzMascara) pintarListras(dpr);
+  if (lente === 'direcao' && direcaoDados) {
+    const r = raiz.getBoundingClientRect();
+    desenharTracinhos(ctx, direcaoDados, vista, base.width, base.height, dpr, r.width, r.height);
+  }
   if (destaqueDe !== null && destaque) ctx.drawImage(destaque, 0, 0, base.width, base.height);
 }
 

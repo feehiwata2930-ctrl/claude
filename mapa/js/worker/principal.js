@@ -3,6 +3,9 @@
 
 import { escurecimento, borrar } from './filtros.js';
 import { classificarLuz } from './luz.js';
+import { calcularBordas } from './bordas.js';
+import { calcularTextura } from './textura.js';
+import { calcularDirecao } from './direcao.js';
 import { quantizar, absorverIlhas } from './mapa-potes.js';
 
 let tarefaAtual = 0;
@@ -55,6 +58,25 @@ async function processar(m) {
   const cls = classificarLuz(mapa, l, a, m.limpo, m.nPotes);
   if (!vivo()) return;
   self.postMessage({ tipo: 'luz', tarefa, l, a, cls }, [cls.buffer]);
+  await respirar(); if (!vivo()) return;
+
+  // 5) BORDAS (ouro = dura, azul = degradê) — escalas em mm
+  const bordas = calcularBordas(d, l, a, pxPorMm);
+  if (!vivo()) return;
+  self.postMessage({ tipo: 'bordas', tarefa, l, a, cls: bordas }, [bordas.buffer]);
+  await respirar(); if (!vivo()) return;
+
+  // 6) TEXTURA (liso / texturizado / detalhe fino)
+  const textura = calcularTextura(d, l, a, pxPorMm);
+  if (!vivo()) return;
+  self.postMessage({ tipo: 'textura', tarefa, l, a, cls: textura }, [textura.buffer]);
+  await respirar(); if (!vivo()) return;
+
+  // 7) DIREÇÃO (tensor de estrutura)
+  const dir = calcularDirecao(d, l, a, pxPorMm);
+  if (!vivo()) return;
+  self.postMessage({ tipo: 'direcao', tarefa, l0: l, a0: a, l: dir.l, a: dir.a, angulo: dir.angulo, forca: dir.forca },
+    [dir.angulo.buffer, dir.forca.buffer]);
 
   self.postMessage({ tipo: 'fim', tarefa });
 }

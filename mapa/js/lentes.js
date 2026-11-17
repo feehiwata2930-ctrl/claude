@@ -69,6 +69,27 @@ export function camadaLuz(cls, d8, l, a) {
   return { base, mascara };
 }
 
+/** Paletas [r, g, b, opacidade 0–255] por classe (null = sem cor). */
+export const PALETA_BORDAS = [null, [236, 192, 60, 255], [64, 140, 255, 165]];       // ouro = dura, azul = degradê
+export const PALETA_TEXTURA = [[56, 196, 170, 170], [247, 150, 48, 170], [236, 62, 150, 175]]; // liso, texturizado, fino
+
+/**
+ * Referência em cinza (apagada para as cores se destacarem) com cada classe pintada
+ * pela paleta. `brilho` escurece a referência.
+ */
+export function camadaClasses(cls, d8, l, a, paleta, brilho = 0.5) {
+  const c = novoCanvas(l, a), ctx = c.getContext('2d');
+  const img = ctx.createImageData(l, a), px = new Uint32Array(img.data.buffer);
+  for (let i = 0; i < d8.length; i++) {
+    const g = (255 - d8[i]) * brilho + 16, p = paleta[cls[i]];
+    let r = g, gg = g, b = g;
+    if (p) { const k = p[3] / 255; r = g + (p[0] - g) * k; gg = g + (p[1] - g) * k; b = g + (p[2] - g) * k; }
+    px[i] = (255 << 24) | ((b | 0) << 16) | ((gg | 0) << 8) | (r | 0);
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
 const OURO = (150 << 24) | (60 << 16) | (200 << 8) | 255;   // dourado translúcido
 const SOMBRA = (205 << 24);                                  // preto translúcido
 
