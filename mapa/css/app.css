@@ -109,7 +109,7 @@ svg { display: block; }
 .vz-voltar { position: absolute; top: calc(var(--sat) + 8px); left: calc(var(--sal) + 8px); }
 /* Coluna de lentes à direita */
 .lentes {
-  position: absolute; right: calc(var(--sar) + 8px); top: 50%; transform: translateY(-50%);
+  position: absolute; right: calc(var(--sar) + 8px); top: calc(50% - 30px); transform: translateY(-50%);
   display: flex; flex-direction: column; gap: 6px;
 }
 .lentes .bt.ativa { background: var(--destaque); color: #1a1500; border-color: transparent; }
@@ -120,3 +120,38 @@ svg { display: block; }
   --sat-px: env(safe-area-inset-top, 0px); --sab-px: env(safe-area-inset-bottom, 0px);
   --sal-px: env(safe-area-inset-left, 0px); --sar-px: env(safe-area-inset-right, 0px);
 }
+
+/* Barra de potes (embaixo): um quadrado por pote, do mais escuro ao mais claro */
+.barra-potes {
+  position: absolute; left: calc(var(--sal) + 6px); right: calc(var(--sar) + 6px);
+  bottom: calc(var(--sab) + 6px); height: 66px; display: flex;
+  padding: 4px; border-radius: 18px; background: rgba(24, 24, 27, .82);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .08);
+}
+/* o botão ocupa toda a faixa (alvo de toque grande); a cor fica no miolo */
+.barra-potes button { flex: 1; min-width: 0; padding: 3px; display: flex; }
+.barra-potes i {
+  flex: 1; border-radius: 10px; border: 1.5px solid rgba(255, 255, 255, .28);
+  transition: transform .12s, opacity .12s;
+}
+.barra-potes.tem-aceso button:not(.aceso) i { opacity: .38; }
+.barra-potes button.aceso i {
+  transform: scale(1.08) translateY(-5px);
+  border-color: var(--destaque); box-shadow: 0 0 0 3px var(--destaque), 0 6px 16px rgba(0, 0, 0, .6);
+}
+
+/* Círculo do gesto de segurar */
+.lupa { position: absolute; left: 0; top: 0; width: 104px; height: 104px; pointer-events: none; }
+.lupa[hidden] { display: none; }
+.lupa-cor {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 5px solid #fff; box-shadow: 0 0 0 3px var(--destaque), 0 10px 30px rgba(0, 0, 0, .7);
+}
+.lupa.vazia .lupa-cor { border-style: dashed; border-color: rgba(255, 255, 255, .5); box-shadow: none; }
+.lupa-ponto {
+  position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px;
+  border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 0 0 1.5px #000, inset 0 0 0 1.5px #000;
+}
+.lupa.pulso .lupa-cor { animation: pulso .28s ease-out; }
+@keyframes pulso { 0% { transform: scale(.55); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }

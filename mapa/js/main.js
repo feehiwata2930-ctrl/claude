@@ -1,6 +1,7 @@
 // main.js — ponto de partida: liga as telas entre si.
 
 import { pedirPersistencia } from './db.js';
+import { carregarAjustes } from './ajustes.js';
 import { iniciarGaleria, atualizarGaleria } from './galeria.js';
 import { iniciarNovo, abrirNovo } from './novo.js';
 import { iniciarVisualizador, abrirProjeto, fecharProjeto } from './visualizador.js';
@@ -34,4 +35,5 @@ iniciarNovo(telas.novo, { aoCriar: abrir, aoCancelar: voltarParaGaleria });
 iniciarVisualizador(telas.visualizador, { aoVoltar: voltarParaGaleria });
 
 pedirPersistencia();
+await carregarAjustes();
 atualizarGaleria();
