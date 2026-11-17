@@ -13,8 +13,12 @@ export function iniciarBarra(el, fn) {
 
 /** `cores` = lista de [r,g,b], do pote mais escuro ao mais claro. */
 export function desenharBarra(cores) {
+  const duas = cores.length > 7;   // muitos potes: segunda linha, para os botões continuarem grandes
+  const base = duas ? 100 / Math.ceil(cores.length / 2) : 0;
+  raiz.classList.toggle('duas', duas);
+  raiz.parentElement.style.setProperty('--barra-h', (duas ? 132 : 66) + 'px');
   raiz.innerHTML = cores.map(([r, g, b], i) =>
-    `<button data-i="${i}"><i style="background:rgb(${r},${g},${b})"></i></button>`).join('');
+    `<button data-i="${i}"${duas ? ` style="flex:1 0 ${base}%"` : ''}><i style="background:rgb(${r},${g},${b})"></i></button>`).join('');
 }
 
 /** Marca o pote aceso (ou nenhum, com null). */

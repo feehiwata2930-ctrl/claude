@@ -28,3 +28,7 @@ export async function mudarAjustes(mudancas) {
   await salvarConfig('ajustes', atual);
   return atual;
 }
+
+/** A tela de apresentação aparece só na primeira abertura. */
+export const apresentacaoJaVista = () => lerConfig('apresentacao-vista', false);
+export const marcarApresentacaoVista = () => salvarConfig('apresentacao-vista', true);

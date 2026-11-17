@@ -1,5 +1,5 @@
 // galeria.js — grade de miniaturas + botão "+".
-// Tocar abre o projeto; segurar pede confirmação visual para apagar.
+// Engrenagem = ajustes. Tocar abre o projeto; segurar pede confirmação visual para apagar.
 
 import { listarProjetos, apagarProjeto } from './db.js';
 import { urlDeBytes } from './imagem.js';
@@ -7,16 +7,18 @@ import { icones } from './icones.js';
 
 const TEMPO_SEGURAR = 550;
 let raiz, grade, entrada, urls = [];
-let acoes = {};   // { aoAbrir(id), aoEscolherImagem(arquivo) }
+let acoes = {};   // { aoAbrir(id), aoEscolherImagem(arquivo), aoAjustes() }
 
 export function iniciarGaleria(el, a) {
   raiz = el; acoes = a;
   raiz.innerHTML = `
+    <div class="galeria-topo"><button class="bt abrir-ajustes" aria-label="Ajustes">${icones.engrenagem}</button></div>
     <div class="grade"></div>
     <button class="mais" aria-label="Novo projeto">${icones.mais}</button>
     <input type="file" accept="image/*" hidden>`;
   grade = raiz.querySelector('.grade');
   entrada = raiz.querySelector('input');
+  raiz.querySelector('.abrir-ajustes').addEventListener('click', () => acoes.aoAjustes());
   raiz.querySelector('.mais').addEventListener('click', () => { entrada.value = ''; entrada.click(); });
   entrada.addEventListener('change', () => {
     if (entrada.files[0]) acoes.aoEscolherImagem(entrada.files[0]);

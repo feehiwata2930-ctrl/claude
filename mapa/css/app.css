@@ -124,7 +124,7 @@ svg { display: block; }
 /* Barra de potes (embaixo): um quadrado por pote, do mais escuro ao mais claro */
 .barra-potes {
   position: absolute; left: calc(var(--sal) + 6px); right: calc(var(--sar) + 6px);
-  bottom: calc(var(--sab) + 6px); height: 66px; display: flex;
+  bottom: calc(var(--sab) + 6px); height: var(--barra-h, 66px); display: flex;
   padding: 4px; border-radius: 18px; background: rgba(24, 24, 27, .82);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, .08);
@@ -159,7 +159,7 @@ svg { display: block; }
 /* Seletor da lente Na pele: 4 tons + cicatrizado */
 .opcoes-pele {
   position: absolute; left: calc(var(--sal) + 6px); right: calc(var(--sar) + 6px);
-  bottom: calc(var(--sab) + 80px); display: flex; justify-content: center; gap: 8px;
+  bottom: calc(var(--sab) + var(--barra-h, 66px) + 14px); display: flex; justify-content: center; gap: 8px;
 }
 .opcoes-pele[hidden] { display: none; }
 .opcoes-pele .tom {
@@ -170,3 +170,72 @@ svg { display: block; }
 .opcoes-pele .tom i { flex: 1; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .35); }
 .opcoes-pele .tom.ativa { border-color: var(--destaque); box-shadow: 0 0 0 2px var(--destaque); }
 .opcoes-pele .cic.ativa { background: var(--destaque); color: #1a1500; border-color: transparent; }
+
+.barra-potes.duas { flex-wrap: wrap; }
+
+/* Botões extras do visualizador */
+.vz-ajustes { position: absolute; top: calc(var(--sat) + 8px); right: calc(var(--sar) + 8px); }
+.vz-aviso-tela {
+  position: absolute; top: calc(var(--sat) + 8px); left: calc(var(--sal) + 72px);
+  width: var(--botao); height: var(--botao); display: grid; place-items: center; color: #f5a524; opacity: .85;
+}
+.vz-aviso-tela[hidden] { display: none; }
+.vz-aviso-tela svg { width: 28px; height: 28px; }
+
+/* Galeria: engrenagem no topo */
+.galeria-topo { display: flex; justify-content: flex-end; height: var(--botao); margin-bottom: 10px; flex: none; }
+
+/* ===== Telas de texto: Ajustes e Apresentação ===== */
+.tela-texto { background: var(--fundo); padding: calc(var(--sat) + 8px) 14px 0; }
+.aj-topo { display: flex; align-items: center; gap: 12px; height: 64px; flex: none; }
+.aj-topo h1 { margin: 0; font-size: 26px; }
+.aj-corpo { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 14px; padding-bottom: calc(var(--sab) + 40px); }
+.aj-sec { background: var(--painel); border: 1px solid var(--linha); border-radius: 18px; padding: 14px; flex: none; }
+.aj-sec h2 { margin: 0 0 10px; font-size: 18px; display: flex; justify-content: space-between; }
+.aj-sec h2 b { color: var(--destaque); font-variant-numeric: tabular-nums; }
+.aj-dica { color: var(--texto-fraco); font-size: 14px; line-height: 1.4; margin: 0 0 12px; }
+.aj-sec input[type=text] {
+  height: var(--botao); border-radius: 12px; border: 1px solid var(--linha); background: var(--painel-2);
+  color: var(--texto); font: inherit; font-size: 18px; padding: 0 12px; min-width: 0; width: 100%;
+  -webkit-user-select: text; user-select: text;
+}
+.aj-cm { display: flex; align-items: center; gap: 10px; font-size: 20px; }
+.aj-cm input { max-width: 150px; font-size: 24px !important; font-weight: 700; }
+.aj-tons { display: flex; gap: 10px; }
+.aj-tons button { flex: 1; height: var(--botao); border-radius: 14px; padding: 6px; display: flex; background: var(--painel-2); border: 2px solid transparent; }
+.aj-tons button i { flex: 1; border-radius: 9px; }
+.aj-tons button.ativa { border-color: var(--destaque); }
+.aj-seg { display: flex; gap: 8px; }
+.aj-seg button { flex: 1; height: var(--botao); border-radius: 14px; background: var(--painel-2); font-size: 17px; font-weight: 600; }
+.aj-seg button.ativa { background: var(--destaque); color: #1a1500; }
+.aj-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: var(--botao); margin-top: 10px; font-size: 16px; text-align: left; }
+.aj-chave { flex: none; width: 64px; height: 36px; border-radius: 18px; background: var(--painel-2); position: relative; transition: background .15s; }
+.aj-chave::after { content: ''; position: absolute; top: 4px; left: 4px; width: 28px; height: 28px; border-radius: 50%; background: #fff; transition: left .15s; }
+.aj-chave[aria-pressed=true] { background: var(--destaque); }
+.aj-chave[aria-pressed=true]::after { left: 32px; background: #1a1500; }
+.aj-contraste { width: 100%; height: var(--botao); accent-color: var(--destaque); }
+.aj-potes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.aj-pote { display: grid; grid-template-columns: 40px 1fr 74px 14px var(--botao); align-items: center; gap: 8px; }
+.aj-pote > i { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid rgba(255, 255, 255, .28); }
+.aj-pote > span { color: var(--texto-fraco); }
+.aj-pote .bt:disabled { opacity: .3; }
+.aj-botao {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: var(--botao);
+  border-radius: 14px; background: var(--painel-2); font-size: 17px; font-weight: 600; margin-top: 8px;
+}
+.aj-botao svg { width: 22px; height: 22px; }
+.aj-botao.principal { background: var(--destaque); color: #1a1500; }
+.aj-botao:disabled { opacity: .5; }
+.aj-estado { color: var(--texto-fraco); font-size: 14px; margin: 10px 0 0; min-height: 18px; }
+
+/* Apresentação */
+.ap-titulo { margin: 4px 0 10px; font-size: 28px; flex: none; }
+.ap-lista { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+.ap-linha { display: flex; align-items: center; gap: 14px; background: var(--painel); border: 1px solid var(--linha); border-radius: 16px; padding: 10px 12px; }
+.ap-linha p { margin: 0; font-size: 15px; line-height: 1.35; }
+.ap-linha b { color: var(--destaque); }
+.ap-icone { flex: none; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--painel-2); }
+.ap-icone svg { width: 28px; height: 28px; }
+.ap-gestos { color: var(--texto-fraco); font-size: 14px; text-align: center; margin: 4px 0 0; }
+.ap-ok { flex: none; height: 68px; margin: 8px 0 calc(var(--sab) + 12px); border-radius: 18px; background: var(--destaque); color: #1a1500; display: grid; place-items: center; }
+.ap-ok svg { width: 36px; height: 36px; }

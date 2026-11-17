@@ -14,6 +14,7 @@ import { desenharTracinhos } from './tracinhos.js';
 import { iniciarBarra, desenharBarra, marcarPote } from './barra-potes.js';
 import { iniciarLupa, mostrarLupa, esconderLupa, pulsar } from './lupa.js';
 import { vibrar } from './tatil.js';
+import { manterAcesa, soltarTela, tentarDeNovo } from './energia.js';
 
 // Ordem das lentes na coluna da direita.
 const LENTES = ['referencia', 'pele', 'potes', 'textura', 'bordas', 'direcao', 'luz'];
@@ -21,6 +22,7 @@ const ZOOM_MAX = 16;      // vezes o tamanho "enquadrado"
 const ZOOM_MIN = 0.7;
 
 let raiz, canvas, ctx, acoes = {};
+let tamL = 0, tamA = 0;                     // último tamanho da tela (para não perder o zoom ao voltar dos ajustes)
 let projeto = null, base = null;            // base = canvas com a referência
 let vista = { escala: 1, x: 0, y: 0 };      // posição da imagem na tela (px CSS)
 let pedido = 0, animacao = 0;
@@ -38,10 +40,12 @@ let direcaoDados = null;                    // { angulo, forca, l, a } — campo
 let rascunho = null, listras = null;        // para desenhar as listras da lente Luz
 
 export function iniciarVisualizador(el, a) {
-  raiz = el; acoes = a;   // { aoVoltar() }
+  raiz = el; acoes = a;   // { aoVoltar(), aoAjustes(idProjeto) }
   raiz.innerHTML = `
     <canvas></canvas>
     <button class="bt vz-voltar" aria-label="Voltar">${icones.voltar}</button>
+    <button class="vz-aviso-tela" hidden aria-label="A tela pode apagar">${icones.semtela}</button>
+    <button class="bt vz-ajustes" aria-label="Ajustes">${icones.engrenagem}</button>
     <div class="lentes">${LENTES.map((l) =>
       `<button class="bt" data-lente="${l}" disabled>${icones[l]}</button>`).join('')}</div>
     <div class="opcoes-pele" hidden>
@@ -52,6 +56,8 @@ export function iniciarVisualizador(el, a) {
   canvas = raiz.querySelector('canvas');
   ctx = canvas.getContext('2d');
   raiz.querySelector('.vz-voltar').addEventListener('click', () => acoes.aoVoltar());
+  raiz.querySelector('.vz-ajustes').addEventListener('click', () => acoes.aoAjustes(projeto && projeto.id));
+  raiz.querySelector('.vz-aviso-tela').addEventListener('click', () => tentarDeNovo());
   raiz.querySelector('.lentes').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b && !b.disabled) trocarLente(b.dataset.lente);
@@ -77,7 +83,14 @@ export function iniciarVisualizador(el, a) {
     aoSegurarMover: sondar,
     aoSoltar: () => { poteSonda = null; esconderLupa(); atualizarDestaque(); },
   });
-  new ResizeObserver(() => { if (!raiz.hidden) { ajustarCanvas(); if (base) { vista = enquadrada(); desenhar(); } } }).observe(raiz);
+  new ResizeObserver(() => {
+    const r = raiz.getBoundingClientRect();
+    if (!r.width) return;   // tela escondida (ajustes abertos): nada a fazer
+    if (Math.abs(r.width - tamL) < 1 && Math.abs(r.height - tamA) < 1) return;   // mesmo tamanho: mantém o zoom
+    tamL = r.width; tamA = r.height;
+    ajustarCanvas();
+    if (base) { vista = enquadrada(); desenhar(); }
+  }).observe(raiz);
 }
 
 /** Abre um projeto salvo e dispara o processamento das lentes. */
@@ -96,9 +109,32 @@ export async function abrirProjeto(id) {
   mostrarOpcoes();
   desenhar();
   processar(base, projeto.larguraCm, ajustes(), receber);
+  // tela sempre acesa durante a sessão; se o iPhone não deixar, aparece o ícone de aviso
+  manterAcesa((ok) => { raiz.querySelector('.vz-aviso-tela').hidden = ok; });
+}
+
+/**
+ * Chamado ao voltar dos ajustes: relê a largura da peça, refaz as cores e reprocessa
+ * todas as lentes com os ajustes novos (o zoom e a posição ficam como estavam).
+ */
+export async function reaplicarAjustes() {
+  if (!projeto || !base) return;
+  projeto = await lerProjeto(projeto.id);
+  cancelarProcessamento();
+  Object.keys(camadas).forEach((k) => { soltarCanvas(camadas[k]); delete camadas[k]; });
+  soltarCanvas(destaque); destaque = null; destaqueDe = null;
+  potes = null; peleDados = luzDados = direcaoDados = null;
+  poteFixo = poteSonda = null;
+  lente = 'referencia';
+  atualizarCores();
+  marcarLentes();
+  mostrarOpcoes();
+  desenhar();
+  processar(base, projeto.larguraCm, ajustes(), receber);
 }
 
 export function fecharProjeto() {
+  soltarTela();
   pararAnimacao();
   cancelarProcessamento();
   esconderLupa();
@@ -246,7 +282,7 @@ function areaLivre() {
   const r = raiz.getBoundingClientRect();
   const st = getComputedStyle(raiz);
   const n = (v) => parseFloat(st.getPropertyValue(v)) || 0;
-  const cima = n('--sat-px') + 6, baixo = n('--sab-px') + 80, dir = n('--sar-px') + 72, esq = n('--sal-px') + 6;
+  const cima = n('--sat-px') + 6, baixo = n('--sab-px') + (n('--barra-h') || 66) + 14, dir = n('--sar-px') + 72, esq = n('--sal-px') + 6;
   return { x: esq, y: cima, l: r.width - esq - dir, a: r.height - cima - baixo };
 }
 

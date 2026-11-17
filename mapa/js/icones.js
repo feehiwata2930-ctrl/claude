@@ -15,6 +15,11 @@ export const icones = {
   // Cicatrizado: curativo
   cicatrizado: svg('<rect x="2.5" y="8" width="19" height="8" rx="4" transform="rotate(-35 12 12)"/><path d="M10 10.5l.01 0M12 12l.01 0M14 13.5l.01 0" stroke-width="2.6"/>'),
 
+  // Segurar o dedo num ponto
+  segurar: svg('<circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="8.5" stroke-dasharray="3.2 3"/>'),
+  // Aviso: a tela pode apagar
+  semtela: svg('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M3 3l18 18"/>'),
+
   // --- Lentes ---
   // Referência: uma foto
   referencia: svg('<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 2.5-2.5L20 17"/>'),
