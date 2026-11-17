@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport-fit=cover: usa a tela inteira do iPhone (inclusive atrás do notch) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0b0c">
+  <!-- Instalação na tela inicial do iPhone -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mapa">
+  <title>Mapa</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <!-- Cada tela é uma <section>; só uma fica visível por vez (ver js/main.js) -->
+  <section id="tela-galeria" class="tela"></section>
+  <section id="tela-novo" class="tela" hidden></section>
+  <section id="tela-visualizador" class="tela" hidden></section>
+  <section id="tela-ajustes" class="tela tela-texto" hidden></section>
+  <section id="tela-apresentacao" class="tela tela-texto" hidden></section>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

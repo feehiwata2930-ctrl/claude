@@ -39,6 +39,10 @@ jobs:
       - run: |
           mkdir -p dist/tatucorte
           cp -r tatucorte/dist/. dist/tatucorte/
+          # Mapa de execução (PWA estático): copia a pasta e carimba a versão no service worker
+          mkdir -p dist/mapa
+          cp -r mapa/. dist/mapa/
+          sed -i "s/__VERSAO__/${GITHUB_SHA::7}/" dist/mapa/sw.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
